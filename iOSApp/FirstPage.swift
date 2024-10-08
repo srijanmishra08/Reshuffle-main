@@ -2,7 +2,7 @@ import SwiftUI
 import MapKit
 import FirebaseAuth
 import FirebaseFirestore
-
+//tab bar code
 struct FirstPage: View {
     @State private var selectedTab = 0
     @StateObject private var userDataViewModel = UserDataViewModel()

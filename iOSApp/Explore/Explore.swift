@@ -90,7 +90,7 @@ struct CustomAnnotationView: View {
                     Text(userDetails.firstName)
                         .font(.title2)
                         .fontWeight(.bold)
-                        .foregroundColor(.blue)
+                        .foregroundColor(.black)
                     Text(userDetails.designation)
                         .font(.title3)
                         .foregroundColor(.gray)
@@ -129,7 +129,7 @@ struct CustomAnnotationView: View {
             }
 
             Image(systemName: "rectangle.fill")
-                .foregroundColor(.blue)
+                .foregroundColor(.black)
                 .frame(width: 80, height: 120)
                 .onTapGesture {
                     withAnimation {
@@ -491,7 +491,7 @@ struct NextView: View {
                         }
                     }
                 }
-
+                
                 Spacer()
                 
                 NavigationLink(
@@ -525,7 +525,11 @@ struct NextView: View {
     private func loadInitialAnnotations() {
         
         }
-
+    
+    
+    
+    
+    
     private func saveCard(for uid: String) {
             guard let currentUserUID = Auth.auth().currentUser?.uid else {
                 print("User not authenticated")
@@ -574,11 +578,11 @@ struct NextView: View {
                     annotation.userDetails.designation.localizedCaseInsensitiveContains(searchText) ||
                     annotation.userDetails.company.localizedCaseInsensitiveContains(searchText)
 
-                let professionMatch = selectedProfession.isEmpty || categories[category]?.contains(annotation.userDetails.designation) == true
+//                let professionMatch = selectedProfession.isEmpty || categories[category]?.contains(annotation.userDetails.designation) == true
+//
+//                let categoryMatch = category == "All Cards" || categories[category]?.contains(annotation.userDetails.designation) == true
 
-                let categoryMatch = category == "All Cards" || categories[category]?.contains(annotation.userDetails.designation) == true
-
-                return searchTextMatch && professionMatch && categoryMatch
+                return searchTextMatch /*&& professionMatch && categoryMatch*/
             }
         }
         if let firstResult = filteredAnnotations.first {

@@ -193,6 +193,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		12978C732CB3C02100CA653A /* MyCards */ = {
+			isa = PBXGroup;
+			children = (
+				53D54E232B29A2980054F3E3 /* MyCards.swift */,
+				7F6583472B4E452E00BECAE3 /* NotificationsView.swift */,
+				53F9A9762B4137CC00FB72AD /* BusinessCard.swift */,
+				535B1EF12B9C3F7200AF9F42 /* BusinessCardMyCards.swift */,
+				5321E9612B87BB9F007BDA85 /* BarcodeView.swift */,
+				533FD2AF2B923D4F00A41EAC /* SharingBusinessCard.swift */,
+				53268B832BC69334002DDE45 /* EditCardsPreviewCard.swift */,
+				537AF5212B2B180400FB2631 /* EditCards.swift */,
+				530EE0C52B8B006A00B2F5BB /* Chat */,
+			);
+			path = MyCards;
+			sourceTree = "<group>";
+		};
 		12C2E9762CA67B5100B863A4 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -204,8 +220,10 @@
 		12C8943D2CAA8784000C3C73 /* Explore */ = {
 			isa = PBXGroup;
 			children = (
+				533DD54C2B28690400692972 /* Explore.swift */,
 				12C8943B2CAA8784000C3C73 /* LocationManager.swift */,
 				12C8943C2CAA8784000C3C73 /* SavedCards.swift */,
+				535B1EF32B9CA07500AF9F42 /* BusinessCardSaved.swift */,
 			);
 			path = Explore;
 			sourceTree = "<group>";
@@ -306,27 +324,17 @@
 		533DD53D2B2864D700692972 /* iOSApp */ = {
 			isa = PBXGroup;
 			children = (
-				12C8943D2CAA8784000C3C73 /* Explore */,
 				53FFA5412B84C1B100ADA93B /* Info.plist */,
 				533DD53E2B2864D700692972 /* iOSAppApp.swift */,
 				533DD5402B2864D700692972 /* ContentView.swift */,
 				532E41AA2B2B46A1001664A3 /* LoginView.swift */,
 				53C0AE0F2B2B46FB008F8056 /* SignUpView.swift */,
 				532E41A62B2B23C5001664A3 /* Onboarding.swift */,
-				53268B832BC69334002DDE45 /* EditCardsPreviewCard.swift */,
-				53D96D322B2AEF7100339122 /* Settings.swift */,
 				53C0AE112B2B4921008F8056 /* FirstPage.swift */,
 				9D6187E42BAD7B4D0001F53F /* Launch Screen.storyboard */,
-				53D54E232B29A2980054F3E3 /* MyCards.swift */,
-				5321E9612B87BB9F007BDA85 /* BarcodeView.swift */,
-				7F6583472B4E452E00BECAE3 /* NotificationsView.swift */,
-				53F9A9762B4137CC00FB72AD /* BusinessCard.swift */,
-				535B1EF12B9C3F7200AF9F42 /* BusinessCardMyCards.swift */,
-				535B1EF32B9CA07500AF9F42 /* BusinessCardSaved.swift */,
-				533FD2AF2B923D4F00A41EAC /* SharingBusinessCard.swift */,
-				530EE0C52B8B006A00B2F5BB /* Chat */,
-				537AF5212B2B180400FB2631 /* EditCards.swift */,
-				533DD54C2B28690400692972 /* Explore.swift */,
+				12C8943D2CAA8784000C3C73 /* Explore */,
+				12978C732CB3C02100CA653A /* MyCards */,
+				53D96D322B2AEF7100339122 /* Settings.swift */,
 				533DD5422B2864D900692972 /* Assets.xcassets */,
 				533DD5442B2864D900692972 /* Preview Content */,
 			);
