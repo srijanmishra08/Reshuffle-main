@@ -29,28 +29,8 @@ struct EditCards: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 0) {
-                    HStack {
-                        Text("Edit Cards")
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .padding(.leading)
-                        Spacer()
-                        Spacer()
-                    }
-                    .padding()
-                    
-                    Rectangle()
-                        .frame(height: 1)
-                        .foregroundColor(Color.gray.opacity(0.3))
-                    
-                    Spacer()
-                    Spacer()
-                    
                     VStack(spacing:0) {
-                        
                         VStack{
-                            
                             if let businessCard = userDataViewModel.businessCard {
                                 CustomCardViewPreview(businessCard: businessCard)
                                     .padding()
@@ -171,7 +151,8 @@ struct EditCards: View {
                                 Alert(title: Text("Card Saved"), message: Text("Your card has been saved successfully."), dismissButton: .default(Text("OK")))
                             }
                         }
-                    }
+                    }.navigationTitle("Edit Cards")
+                        
                 }
             }
             .onAppear {
@@ -199,7 +180,6 @@ struct EditCards: View {
                             print("User document not found: \(error?.localizedDescription ?? "Unknown error")")
                         }
                     }
-                }
             }
         }
     }
@@ -261,7 +241,6 @@ struct RoundedTextField: View {
 struct EditCards_Previews: PreviewProvider {
     static var previews: some View {
         let userDataViewModel = UserDataViewModel()
-
         EditCards(userDataViewModel: userDataViewModel)
     }
 }

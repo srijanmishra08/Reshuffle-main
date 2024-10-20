@@ -5,7 +5,15 @@ import UIKit
 struct QRCodeView: View {
     let qrCodeData: String
 
-    private func generateQRCode() -> Image? {
+    // Function to save QR Code data to UserDefaults
+    private func saveQRCodeData() {
+        UserDefaults.standard.set(qrCodeData, forKey: "QRCodeData")
+    }
+
+    public func generateQRCode() -> Image? {
+        // Save QR Code data to UserDefaults before generating the QR code
+        saveQRCodeData()
+        
         guard let data = qrCodeData.data(using: .utf8) else { return nil }
 
         let context = CIContext()
@@ -30,7 +38,7 @@ struct QRCodeView: View {
                 qrCodeImage
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(width: 125, height: 125) 
+                    .frame(width: 125, height: 125)
             } else {
                 Text("Unable to generate QR code")
             }
