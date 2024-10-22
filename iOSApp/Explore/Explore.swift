@@ -635,6 +635,7 @@ struct NextView: View {
             }
         }
     }
+    
     private func showUserDetailsCategory(for category: String) {
             let db = Firestore.firestore()
             

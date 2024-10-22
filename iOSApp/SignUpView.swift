@@ -41,11 +41,6 @@ struct SignupView: View {
                 }
 
                 VStack(spacing: 16) {
-                    TextField("Full Name", text: $fullName)
-                        .customTextFieldStyle()
-                        .padding(EdgeInsets(top: 20, leading: 5, bottom: 10, trailing: 5))
-                        .font(.system(size: 20))
-
                     TextField("Email address", text: $email)
                         .customTextFieldStyle()
                         .padding(EdgeInsets(top: 10, leading: 5, bottom: 10, trailing: 5))
