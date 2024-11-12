@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		122CBB0C2CE09890003CF7EA /* demo explore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 122CBB0B2CE09890003CF7EA /* demo explore.swift */; };
 		126018B02CA7023E00E0788C /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 126018AF2CA7023E00E0788C /* GoogleService-Info.plist */; };
 		12978C7B2CC4E5B200CA653A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 12978C7A2CC4E5B200CA653A /* WidgetKit.framework */; };
 		12978C7D2CC4E5B200CA653A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 12978C7C2CC4E5B200CA653A /* SwiftUI.framework */; };
@@ -125,6 +126,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		122CBB0B2CE09890003CF7EA /* demo explore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "demo explore.swift"; sourceTree = "<group>"; };
 		126018AF2CA7023E00E0788C /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		12978C782CC4E5B200CA653A /* ReshuffleWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ReshuffleWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		12978C7A2CC4E5B200CA653A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -275,6 +277,7 @@
 				12C8943B2CAA8784000C3C73 /* LocationManager.swift */,
 				12C8943C2CAA8784000C3C73 /* SavedCards.swift */,
 				535B1EF32B9CA07500AF9F42 /* BusinessCardSaved.swift */,
+				122CBB0B2CE09890003CF7EA /* demo explore.swift */,
 			);
 			path = Explore;
 			sourceTree = "<group>";
@@ -589,6 +592,7 @@
 				530EE0E22B8B04DB00B2F5BB /* ImagePicker.swift in Sources */,
 				532E41AB2B2B46A1001664A3 /* LoginView.swift in Sources */,
 				7F6583482B4E452E00BECAE3 /* NotificationsView.swift in Sources */,
+				122CBB0C2CE09890003CF7EA /* demo explore.swift in Sources */,
 				530EE0DE2B8B049500B2F5BB /* ErrorHandler.swift in Sources */,
 				530EE0F22B8B06BC00B2F5BB /* NewChatsView.swift in Sources */,
 				530EE0DC2B8B047300B2F5BB /* Constants.swift in Sources */,

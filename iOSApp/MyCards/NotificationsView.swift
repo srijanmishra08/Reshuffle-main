@@ -5,121 +5,37 @@ import FirebaseFirestore
 import FirebaseAuth
 import UserNotifications
 
-// Function to handle a new connection and trigger a notification
-func handleNewConnection(userId: String, addedUser: BusinessCard) {
-    // Create a new notification data dictionary
-    let notificationData: [String: Any] = [
-        "title": "New Connection",
-        "subtitle": "\(addedUser.name) added your card.",
-        "timestamp": Timestamp(date: Date()),
-        "type": "newConnection"
-    ]
-    
-    // Store notification in Firestore
-    createNotification(userId: userId, notificationData: notificationData)
-    
-    // Schedule a local notification
-    scheduleLocalNotification(title: "New Connection", subtitle: "\(addedUser.name) added your card.")
-}
-
-// Function to suggest a new connection based on profession or proximity
-func suggestConnection(for user: BusinessCard) {
-    let db = Firestore.firestore()
-    
-    // Query Firestore to find users with the same profession
-    db.collection("users").whereField("profession", isEqualTo: user.profession).getDocuments { (snapshot, error) in
-        if let error = error {
-            print("Error fetching suggested connections: \(error)")
-            return
-        }
-        
-        guard let documents = snapshot?.documents else { return }
-        
-        // Iterate through users with similar profession and send notifications
-        for doc in documents {
-            let suggestedUser = doc.data()
-            let suggestedUserName = suggestedUser["name"] as? String ?? ""
-            let suggestedUserProfession = suggestedUser["profession"] as? String ?? ""
-            
-            // Create notification data
-            let notificationData: [String: Any] = [
-                "title": "Suggested Connection",
-                "subtitle": "You might know \(suggestedUserName), \(suggestedUserProfession)",
-                "timestamp": Timestamp(date: Date()),
-                "type": "suggestedConnection"
-            ]
-            
-            // Store notification in Firestore
-            createNotification(userId: user.id.uuidString, notificationData: notificationData)
-            
-            // Schedule local notification
-            scheduleLocalNotification(title: "Suggested Connection", subtitle: "You might know \(suggestedUserName), \(suggestedUserProfession)")
-        }
-    }
-}
-
-// Function to notify a user about a new message
-func notifyNewMessage(from sender: BusinessCard, to recipientId: String, message: String) {
-    // Create notification data
-    let notificationData: [String: Any] = [
-        "title": "New Message",
-        "subtitle": "\(sender.name) sent you a message: \(message)",
-        "timestamp": Timestamp(date: Date()),
-        "type": "newMessage"
-    ]
-    
-    // Store notification in Firestore
-    createNotification(userId: recipientId, notificationData: notificationData)
-    
-    // Schedule local notification
-    scheduleLocalNotification(title: "New Message", subtitle: "\(sender.name) sent you a message: \(message)")
-}
-
-// Function to create a new notification document in Firestore
-func createNotification(userId: String, notificationData: [String: Any]) {
-    let db = Firestore.firestore()
-    
-    // Create a new collection "notifications" for the user if it doesn't exist
-    db.collection("users").document(userId).collection("notifications").addDocument(data: notificationData) { error in
-        if let error = error {
-            print("Error adding notification: \(error)")
-        } else {
-            print("Notification added successfully.")
-        }
-    }
-}
-
-// Function to schedule a local notification
-func scheduleLocalNotification(title: String, subtitle: String) {
-    let content = UNMutableNotificationContent()
-    content.title = title
-    content.body = subtitle
-    content.sound = .default
-
-    let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-    let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
-
-    UNUserNotificationCenter.current().add(request) { error in
-        if let error = error {
-            print("Error scheduling local notification: \(error)")
-        }
-    }
-}
-
 struct NotificationsView: View {
     @State private var notifications: [FirestoreNotificationItem] = []
     @State private var isNavigationActive: Bool = false
     @State private var userId: String? = nil
-
+    
+    // Sample data to display when no notifications are available
+    let sampleData: [FirestoreNotificationItem] = [
+        FirestoreNotificationItem(id: "1", title: "Welcome to the App!", subtitle: "This is a sample notification.", timestamp: Date(), type: "sample"),
+        FirestoreNotificationItem(id: "2", title: "New Features", subtitle: "Check out the latest features of our app.", timestamp: Date(), type: "sample"),
+        FirestoreNotificationItem(id: "3", title: "Stay Connected", subtitle: "Invite friends and build your network.", timestamp: Date(), type: "sample")
+    ]
+    
     var body: some View {
         NavigationView {
             List {
-                ForEach(notifications) { notification in
-                    NotificationCard(title: notification.title, subtitle: notification.subtitle, timestamp: notification.timestamp)
-                        .listRowInsets(EdgeInsets())
-                        .overlay(Divider().background(Color.white), alignment: .bottom)
+                if notifications.isEmpty {
+                    // Show sample data when notifications array is empty
+                    ForEach(sampleData) { notification in
+                        NotificationCard(title: notification.title, subtitle: notification.subtitle, timestamp: notification.timestamp)
+                            .listRowInsets(EdgeInsets())
+                            .overlay(Divider().background(Color.white), alignment: .bottom)
+                    }
+                } else {
+                    // Show real notifications
+                    ForEach(notifications) { notification in
+                        NotificationCard(title: notification.title, subtitle: notification.subtitle, timestamp: notification.timestamp)
+                            .listRowInsets(EdgeInsets())
+                            .overlay(Divider().background(Color.white), alignment: .bottom)
+                    }
+                    .onDelete(perform: deleteNotification)
                 }
-                .onDelete(perform: deleteNotification)
             }
             .listStyle(PlainListStyle())
             .navigationBarTitle("Notifications")

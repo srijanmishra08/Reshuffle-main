@@ -11,7 +11,7 @@ struct FirstPage: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             
-                NextView()
+            ExploreView()
                 .tabItem {
                     Image(systemName: "map")
                         .resizable()

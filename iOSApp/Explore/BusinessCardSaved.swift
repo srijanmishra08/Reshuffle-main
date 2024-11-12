@@ -1,17 +1,8 @@
-//
-//  BusinessCardSaved.swift
-//  iOSApp
-//
-//  Created by Aditya Majumdar on 09/03/24.
-//
-
 import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
 import Firebase
-import PassKit
 
-// Assuming you have a model named UserData
 struct UserDataBusinessCard: Identifiable, Codable, Equatable {
     @DocumentID var id: String?
     var name: String
@@ -30,201 +21,63 @@ struct BusinessCardSaved: View {
     @StateObject private var userDataViewModel = UserDataViewModel()
     @Binding var userData: UserDataBusinessCard
     @State private var isFetchingData = false
-    
+
     var body: some View {
         VStack(spacing: 20) {
-            Image("LOGO")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(height: 45)
-                .padding(.top, 20)
-            
-            Spacer()
-            
-            Text(userData.name)
-                .font(.system(size: 30))
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-                .onTapGesture {
-                            copyToClipboard(userData.name)
-                        }
-            Text(userData.company)
-                .font(.system(size: 20))
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-                .onTapGesture {
-                            copyToClipboard(userData.company)
-                        }
-            
-            Spacer()
-                
-
-                VStack(alignment: .leading) {
-                    HStack {
-                        Text("Role:")
-                            .font(.system(size: 14))
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .opacity(0.5)
-                        Spacer()
-                    }
-                    
-
-                    HStack {
-                        Text(userData.profession)
-                            .font(.system(size: 18))
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .padding(.bottom, 5)
-                        Spacer()
-                    }
-                }
-                
-                // Email
-            VStack(alignment: .leading) {
-                HStack {
-                    Text("Email:")
-                        .font(.system(size: 14))
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .opacity(0.5)
-                    Spacer()
-                }
-                // User's email
-                HStack {
-                    Text(userData.email)
-                        .font(.system(size: 18))
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.bottom, 5)
-                        .onTapGesture {
-                                        // Open the mail app with the email address
-                                        if let emailURL = URL(string: "mailto:\(userData.email)") {
-                                            UIApplication.shared.open(emailURL)
-                                        }
-                                    }
-                    Spacer()
-                }
-                .contextMenu {
-                    Button(action: {
-                        copyToClipboard(userData.email)
-                    }) {
-                        Text("Copy")
-                        Image(systemName: "doc.on.doc")
-                    }
-                }
-            }
-
-                
-            VStack(alignment: .leading) {
-                HStack {
-                    Text("Phone Number:")
-                        .font(.system(size: 14))
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .opacity(0.5)
-                    Spacer()
-                }
-                HStack {
-                    Text(userData.phoneNumber)
-                        .font(.system(size: 18))
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.bottom, 5)
-                        .onTapGesture {
-                            if let phoneURL = URL(string: "tel:\(userData.phoneNumber)") {
-                                UIApplication.shared.open(phoneURL)
-                            }
-                        }
-                    Spacer()
-                }
-            }
-            
-            // Website
-            VStack(alignment: .leading) {
-                HStack {
-                    Text("Website:")
-                        .font(.system(size: 14))
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .opacity(0.5)
-                    Spacer()
-                }
-                HStack {
-                Text(userData.website)
-                    .font(.system(size: 18))
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .padding(.bottom, 5)
+            // Section 1: Name, Role, Company
+            VStack(spacing: 10) {
+                Text(userData.name)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.black)
                     .onTapGesture {
-                        if let websiteURL = URL(string: userData.website) {
-                            UIApplication.shared.open(websiteURL)
-                        }
+                        copyToClipboard(userData.name)
                     }
-                    Spacer()
+                
+                Text(userData.profession)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.gray)
+                    .onTapGesture {
+                        copyToClipboard(userData.profession)
+                    }
+                
+                Text(userData.company)
+                    .font(.system(size: 16, weight: .light))
+                    .foregroundColor(.gray)
+                    .onTapGesture {
+                        copyToClipboard(userData.company)
                     }
             }
+            .padding()
+            .background(RoundedRectangle(cornerRadius: 15)
+                .fill(Color.white)
+                .shadow(color: .gray.opacity(0.3), radius: 10, x: 0, y: 5))
+            .padding(.horizontal, 20)
             
-            // LinkedIn
-            VStack(alignment: .leading) {
-                HStack {
-                    Text("LinkedIn:")
-                        .font(.system(size: 14))
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .opacity(0.5)
-                    Spacer()
+            // Section 2: Contact Information
+            VStack(spacing: 15) {
+                ContactInfoView(label: "Email", content: userData.email) {
+                    openURL("mailto:\(userData.email)")
                 }
-                HStack {
-                    Text(userData.linkedIn)
-                        .font(.system(size: 18))
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.bottom, 5)
-                        .onTapGesture {
-                            if let linkedInURL = URL(string: userData.linkedIn) {
-                                UIApplication.shared.open(linkedInURL)
-                            }
-                        }
-                    Spacer()
+                
+                ContactInfoView(label: "Phone Number", content: userData.phoneNumber) {
+                    openURL("tel:\(userData.phoneNumber)")
+                }
+                
+                ContactInfoView(label: "Website", content: userData.website) {
+                    openURL(userData.website)
                 }
             }
+            .padding(.horizontal, 20)
             
-            // Instagram
-            VStack(alignment: .leading) {
-                HStack {
-                    Text("Instagram:")
-                        .font(.system(size: 14))
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .opacity(0.5)
-                    Spacer()
-                }
-                HStack {
-                    Text(userData.instagram)
-                        .font(.system(size: 18))
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.bottom, 5)
-                        .onTapGesture {
-                            if let instagramURL = URL(string: "https://instagram.com/\(userData.instagram)") {
-                                UIApplication.shared.open(instagramURL)
-                            }
-                        }
-                    Spacer()
+            // Section 3: Social Profiles
+            VStack(spacing: 15) {
+                HStack(spacing: 30) {
+                    SocialIconView(iconName: "linkedin", urlString: "https://linkedin.com/in/\(userData.linkedIn)")
+                    SocialIconView(iconName: "instagram", urlString: "https://instagram.com/\(userData.instagram)")
+                    SocialIconView(iconName: "xmark", urlString: "https://twitter.com/\(userData.xHandle)")
                 }
             }
-            
-            Spacer()
-            
-            HStack {
-                Spacer()
-                Image(systemName: "shuffle")
-                    .font(.system(size: 32))
-                    .foregroundColor(.white)
-                    .padding(20)
-                Spacer()
-            }
+            .padding(.horizontal, 20)
         }
         .padding(20)
         .background(
@@ -238,9 +91,15 @@ struct BusinessCardSaved: View {
     }
     
     private func copyToClipboard(_ text: String) {
-            UIPasteboard.general.string = text
+        UIPasteboard.general.string = text
+    }
+
+    private func openURL(_ urlString: String) {
+        if let url = URL(string: urlString) {
+            UIApplication.shared.open(url)
         }
-    
+    }
+
     func fetchUserData() {
         isFetchingData = true
         if let currentUserUID = Auth.auth().currentUser?.uid {
@@ -253,55 +112,78 @@ struct BusinessCardSaved: View {
                             print("User data fetched successfully: \(userData)")
                         } catch {
                             print("Error decoding user data: \(error.localizedDescription)")
-                            userData = UserDataBusinessCard(
-                                id: "",
-                                name: "Unknown",
-                                profession: "",
-                                company: "",
-                                email: "",
-                                phoneNumber: "",
-                                website: "",
-                                address: "",
-                                linkedIn: "",
-                                instagram: "",
-                                xHandle: ""
-                            )
+                            userData = defaultUserData()
                         }
                     } else {
                         print("Document does not exist")
-                        userData = UserDataBusinessCard(
-                            id: "",
-                            name: "Unknown",
-                            profession: "",
-                            company: "",
-                            email: "",
-                            phoneNumber: "",
-                            website: "",
-                            address: "",
-                            linkedIn: "",
-                            instagram: "",
-                            xHandle: ""
-                        )
+                        userData = defaultUserData()
                     }
                     isFetchingData = false
                 }
             }
         } else {
             print("No user logged in")
-            userData = UserDataBusinessCard(
-                id: "",
-                name: "Unknown",
-                profession: "",
-                company: "",
-                email: "",
-                phoneNumber: "",
-                website: "",
-                address: "",
-                linkedIn: "",
-                instagram: "",
-                xHandle: ""
-            )
+            userData = defaultUserData()
             isFetchingData = false
+        }
+    }
+
+    private func defaultUserData() -> UserDataBusinessCard {
+        UserDataBusinessCard(
+            id: "",
+            name: "Unknown",
+            profession: "",
+            company: "",
+            email: "",
+            phoneNumber: "",
+            website: "",
+            address: "",
+            linkedIn: "",
+            instagram: "",
+            xHandle: ""
+        )
+    }
+}
+
+struct ContactInfoView: View {
+    let label: String
+    let content: String
+    let action: () -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("\(label):")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white.opacity(0.5))
+                Spacer()
+            }
+            HStack {
+                Text(content)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.bottom, 5)
+                    .onTapGesture(perform: action)
+                Spacer()
+            }
+        }
+    }
+}
+
+struct SocialIconView: View {
+    let iconName: String
+    let urlString: String
+    
+    var body: some View {
+        Button(action: {
+            if let url = URL(string: urlString) {
+                UIApplication.shared.open(url)
+            }
+        }) {
+            Image(iconName)
+                .resizable()
+                .frame(width: 32, height: 32)
+                .foregroundColor(.white)
         }
     }
 }
@@ -316,9 +198,9 @@ struct BusinessCardSaved_Previews: PreviewProvider {
             phoneNumber: "+1234567890",
             website: "www.johndoe.com",
             address: "",
-            linkedIn: "",
-            instagram: "",
-            xHandle: ""
+            linkedIn: "https://linkedin.com/in/johndoe",
+            instagram: "johndoe",
+            xHandle: "johndoe"
         ))
 
         return BusinessCardSaved(userData: userData)

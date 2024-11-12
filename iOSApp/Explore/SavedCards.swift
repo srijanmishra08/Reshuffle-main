@@ -12,10 +12,10 @@ struct CardListView: View {
     var body: some View {
         NavigationView {
             VStack {
-                Text("Saved Cards")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .padding()
+//                Text("Saved Cards")
+//                    .font(.largeTitle)
+//                    .fontWeight(.bold)
+//                    .padding()
 
                 TextField("🔍    Search names, companies, and professions", text: $searchCards)
                     .padding()
@@ -61,7 +61,7 @@ struct CardListView: View {
                     }
                 }
                 .listStyle(PlainListStyle())
-            }
+            }.navigationTitle("Saved Cards")
         }
         .onAppear {
             fetchData()
