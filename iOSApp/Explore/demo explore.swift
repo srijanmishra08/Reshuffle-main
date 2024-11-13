@@ -15,6 +15,7 @@ struct UserCard: Identifiable {
 
 // MARK: - ViewModel
 // MARK: - ViewModel
+// MARK: - ViewModel
 class ExploreViewModel: ObservableObject {
     @Published var userCards: [UserCard] = [
         UserCard(name: "Alice Johnson", role: "Product Manager", company: "TechCorp", category: "Tech"),
@@ -26,14 +27,14 @@ class ExploreViewModel: ObservableObject {
     @Published var showCategoryPopup = false
     @Published var isCardListActive = false
 
+    // Filter userCards based on searchText and selectedCategory
     var filteredUserCards: [UserCard] {
         userCards.filter { card in
-            // Check if search text matches name, role, or company
             let matchesSearchText = searchText.isEmpty || card.name.localizedCaseInsensitiveContains(searchText) ||
                                     card.role.localizedCaseInsensitiveContains(searchText) ||
                                     card.company.localizedCaseInsensitiveContains(searchText)
             
-            // Check if selectedCategory matches or if "All Cards" is selected
+            // Matches category, accounting for "All Cards" to show all
             let matchesCategory = selectedCategory == nil || selectedCategory == "All Cards" || card.category == selectedCategory
             
             return matchesSearchText && matchesCategory
@@ -83,15 +84,32 @@ class ExploreViewModel: ObservableObject {
                 
                 guard let name = data["name"] as? String,
                       let role = data["profession"] as? String,
-                      let company = data["company"] as? String,
-                      let latitude = data["latitude"] as? Double,
-                      let longitude = data["longitude"] as? Double else {
+                      let company = data["company"] as? String else {
                     print("Missing or invalid data for user with ID: \(document.documentID)")
                     continue
                 }
                 
-                let category = data["category"] as? String ?? "Unknown Category"
-
+                // Determine category based on profession with added roles
+                let category: String
+                switch role.lowercased() {
+                    case "product manager", "software engineer", "developer", "sde", "data scientist", "network administrator", "web developer", "lead ios developer", "ios developer", "ux/ui designer", "database administrator", "devops engineer", "it consultant", "system analyst", "cybersecurity analyst", "mobile app developer", "ai/machine learning engineer", "game developer", "qa tester", "cloud solutions architect", "tech support specialist", "technical writer", "embedded systems engineer", "network engineer", "full stack developer", "tester":
+                        category = "Tech"
+                    case "general practitioner", "cardiologist", "dentist", "orthopedic surgeon", "pediatrician", "ophthalmologist", "psychiatrist", "neurologist", "obstetrician/gynecologist", "anesthesiologist", "radiologist", "pathologist", "general surgeon", "emergency medicine physician", "family medicine physician", "urologist", "dermatologist", "oncologist", "endocrinologist", "nephrologist","doctor":
+                        category = "Doctor"
+                    case "student", "teacher", "professor":
+                        category = "Education"
+                    case "plumber", "electrician", "hvac technician", "carpenter", "mechanic", "locksmith", "landscaper", "painter", "pool cleaner", "appliance repair technician", "roofing contractor", "pest control technician", "septic tank services", "glass installer", "welder", "solar panel installer", "elevator mechanic", "building inspector", "fire alarm technician", "masonry worker":
+                        category = "Utility"
+                    case "actor", "musician", "video game developer", "film director", "cinematographer", "sound engineer", "choreographer", "costume designer", "makeup artist", "stunt performer", "film editor", "set designer", "casting director", "storyboard artist", "location manager", "voice actor", "script supervisor", "film producer", "entertainment lawyer", "talent agent":
+                        category = "Entertainment"
+                    case "painter", "sculptor", "graphic designer", "photographer", "illustrator", "printmaker", "ceramic artist", "textile designer", "jewelry designer", "glassblower", "digital artist", "street artist", "installation artist", "muralist", "collage artist", "comic book artist", "cartoonist", "conceptual artist", "mixed media artist", "tattoo artist":
+                        category = "Artist"
+                    case "project manager", "hr manager", "financial analyst", "marketing manager", "operations manager", "sales manager", "supply chain manager", "business analyst", "quality assurance manager", "risk manager", "it manager", "event planner", "public relations manager", "brand manager", "facilities manager", "customer success manager", "research and development manager", "training and development manager", "legal operations manager":
+                        category = "Management"
+                    default:
+                        category = "Others"
+                }
+                
                 let userCard = UserCard(
                     id: UUID(uuidString: document.documentID) ?? UUID(),
                     name: name,
@@ -106,7 +124,9 @@ class ExploreViewModel: ObservableObject {
             }
         }
     }
+
 }
+
 
 // MARK: - View
 struct ExploreView: View {
