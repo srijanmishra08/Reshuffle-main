@@ -97,38 +97,39 @@ struct CardListView: View {
             }
         }
 
-        func fetchUserDetails(for uid: String) {
-            let userDatabaseRef = Firestore.firestore().collection("UserDatabase").document(uid)
+    func fetchUserDetails(for uid: String) {
+        let userDatabaseRef = Firestore.firestore().collection("UserDatabase").document(uid)
 
-            userDatabaseRef.getDocument { (document, error) in
-                if let document = document, document.exists {
-                    if let data = document.data() {
-                        let contact = Contact(
-                            uid: uid,
-                            firstName: data["name"] as? String ?? "",
-                            lastName: "",
-                            designation: data["profession"] as? String ?? "",
-                            company: data["company"] as? String ?? "",
-                            coordinate: CLLocationCoordinate2D(),
-                            email: data["email"] as? String ?? "",
-                            role: data["role"] as? String ?? "",
-                            description: data["description"] as? String ?? "",
-                            phoneNumber: data["phoneNumber"] as? String ?? "",
-                            whatsapp: data["whatsapp"] as? String ?? "",
-                            address: data["address"] as? String ?? "",
-                            website: data["website"] as? String ?? "",
-                            linkedIn: data["linkedIn"] as? String ?? "",
-                            instagram: data["instagram"] as? String ?? "",
-                            xHandle: data["xHandle"] as? String ?? ""
-                        )
+        userDatabaseRef.getDocument { (document, error) in
+            if let document = document, document.exists {
+                let data = document.data() ?? [:]
+                let contact = Contact(
+                    uid: uid,
+                    firstName: data["name"] as? String ?? "Unknown",
+                    lastName: "",  // Set default or remove if unnecessary
+                    designation: data["profession"] as? String ?? "Unknown",
+                    company: data["company"] as? String ?? "Unknown",
+                    coordinate: CLLocationCoordinate2D(),
+                    email: data["email"] as? String ?? "",
+                    role: data["role"] as? String ?? "",
+                    description: data["description"] as? String ?? "",
+                    phoneNumber: data["phoneNumber"] as? String ?? "",
+                    whatsapp: data["whatsapp"] as? String ?? "",
+                    address: data["address"] as? String ?? "",
+                    website: data["website"] as? String ?? "",
+                    linkedIn: data["linkedIn"] as? String ?? "",
+                    instagram: data["instagram"] as? String ?? "",
+                    xHandle: data["xHandle"] as? String ?? ""
+                )
 
-                        self.contacts.append(contact)
-                    }
-                } else {
-                    print("Error fetching UserDatabase document for UID \(uid): \(error?.localizedDescription ?? "")")
-                }
+                // Add contact to the list without requiring all fields
+                self.contacts.append(contact)
+            } else {
+                print("Error fetching UserDatabase document for UID \(uid): \(error?.localizedDescription ?? "")")
             }
         }
+    }
+
     }
 
 struct CardListItemView: View {

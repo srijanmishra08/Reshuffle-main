@@ -49,22 +49,42 @@ class ExploreViewModel: ObservableObject {
         // Set selectedCategory to nil for "All Cards" to display all items
         selectedCategory = (category == "All Cards") ? nil : category
     }
+    private let db = Firestore.firestore()
+    func saveUserCard(for uid: String) {
+            guard let currentUserUID = Auth.auth().currentUser?.uid else {
+                print("User not authenticated")
+                return
+            }
+        
+            let currentUserRef = db.collection("SavedUsers").document(currentUserUID)
 
-    func saveUserCard(_ card: UserCard) {
-        guard let currentUserUID = Auth.auth().currentUser?.uid else { return }
-        
-        let savedUsersRef = Firestore.firestore().collection("SavedUsers").document(currentUserUID)
-        
-        savedUsersRef.updateData([
-            "scannedUIDs": FieldValue.arrayUnion([card.id.uuidString])
-        ]) { error in
-            if let error = error {
-                print("Error saving user card: \(error.localizedDescription)")
-            } else {
-                print("User card saved successfully")
+            currentUserRef.getDocument { document, error in
+                if let error = error {
+                    print("Error fetching document: \(error.localizedDescription)")
+                    return
+                }
+
+                var scannedUIDs = [String]()
+                if let document = document, document.exists {
+                    if var data = document.data(), let existingUIDs = data["scannedUIDs"] as? [String] {
+                        scannedUIDs = existingUIDs
+                    }
+                }
+
+                if !scannedUIDs.contains(uid) {
+                    scannedUIDs.append(uid)
+                    currentUserRef.setData(["scannedUIDs": scannedUIDs], merge: true) { error in
+                        if let error = error {
+                            print("Error saving card: \(error.localizedDescription)")
+                        } else {
+                            print("Card saved successfully")
+                        }
+                    }
+                } else {
+                    print("Card already saved")
+                }
             }
         }
-    }
 
     func fetchUserCards() {
         let db = Firestore.firestore()
@@ -163,7 +183,7 @@ struct ExploreView: View {
                             .padding(.horizontal)
                     }
                 }
-            }.background(Color(.gray))
+            }.background(Color(.white))
             
             Spacer()
             
@@ -198,6 +218,7 @@ struct SearchBar: View {
 }
 
 // MARK: - UserCardView
+// MARK: - UserCardView
 struct UserCardView: View {
     let card: UserCard
     @ObservedObject var viewModel: ExploreViewModel
@@ -206,28 +227,30 @@ struct UserCardView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(card.name)
                 .font(.headline)
-                .foregroundColor(.primary)
+                .foregroundColor(.white) // White text for contrast
             Text(card.role)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white)
             Text(card.company)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(.white)
             
             // Save Button
+            // Save Button
             Button(action: {
-                viewModel.saveUserCard(card)
+                // Assuming you want to save the user's ID, you need to pass the card's ID (or any relevant identifier)
+                viewModel.saveUserCard(for: card.id.uuidString) // Pass the card ID as a String
             }) {
                 Text("Save")
                     .padding(8)
-                    .background(Color.blue)
+                    .background(Color.black)
                     .foregroundColor(.white)
                     .cornerRadius(8)
             }
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
+        .background(Color(red: 36/255.0, green: 143/255.0, blue: 152/255.0)) // Custom card background color
         .cornerRadius(12)
         .shadow(radius: 4)
         .padding(.horizontal, 0)
