@@ -124,6 +124,7 @@ struct CardListView: View {
 
                 // Add contact to the list without requiring all fields
                 self.contacts.append(contact)
+                print(contacts)
             } else {
                 print("Error fetching UserDatabase document for UID \(uid): \(error?.localizedDescription ?? "")")
             }

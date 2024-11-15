@@ -6,7 +6,8 @@ import CoreLocation
 
 // MARK: - Model
 struct UserCard: Identifiable {
-    var id = UUID()
+    var id: String // Firebase document ID
+    var uid: String // User's unique identifier
     var name: String
     var role: String
     var company: String
@@ -17,11 +18,7 @@ struct UserCard: Identifiable {
 // MARK: - ViewModel
 // MARK: - ViewModel
 class ExploreViewModel: ObservableObject {
-    @Published var userCards: [UserCard] = [
-        UserCard(name: "Alice Johnson", role: "Product Manager", company: "TechCorp", category: "Tech"),
-        UserCard(name: "Bob Smith", role: "Software Engineer", company: "Innovate Ltd", category: "Tech"),
-        UserCard(name: "Carol White", role: "Designer", company: "Creative Studios", category: "Design")
-    ]
+    @Published var userCards: [UserCard] = []
     @Published var searchText = ""
     @Published var selectedCategory: String? = nil
     @Published var showCategoryPopup = false
@@ -103,6 +100,7 @@ class ExploreViewModel: ObservableObject {
                 let data = document.data()
                 
                 guard let name = data["name"] as? String,
+                      let uid = data["uid"] as? String,
                       let role = data["profession"] as? String,
                       let company = data["company"] as? String else {
                     print("Missing or invalid data for user with ID: \(document.documentID)")
@@ -131,12 +129,13 @@ class ExploreViewModel: ObservableObject {
                 }
                 
                 let userCard = UserCard(
-                    id: UUID(uuidString: document.documentID) ?? UUID(),
-                    name: name,
-                    role: role,
-                    company: company,
-                    category: category
-                )
+                                    id: document.documentID,
+                                    uid: uid,
+                                    name: name,
+                                    role: role,
+                                    company: company,
+                                    category: category
+                                )
 
                 DispatchQueue.main.async {
                     self.userCards.append(userCard)
@@ -239,7 +238,7 @@ struct UserCardView: View {
             // Save Button
             Button(action: {
                 // Assuming you want to save the user's ID, you need to pass the card's ID (or any relevant identifier)
-                viewModel.saveUserCard(for: card.id.uuidString) // Pass the card ID as a String
+                viewModel.saveUserCard(for: card.uid) // Pass the card ID as a String
             }) {
                 Text("Save")
                     .padding(8)
