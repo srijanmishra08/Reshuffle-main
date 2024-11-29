@@ -10,7 +10,8 @@ struct CardListView: View {
     @State private var contacts: [Contact] = []
 
     var body: some View {
-        NavigationView {
+//        this might not be neccassary to be inside a navigation stack because you arent navigating to another page.check it once.
+        NavigationStack {
             VStack {
 //                Text("Saved Cards")
 //                    .font(.largeTitle)
@@ -66,7 +67,7 @@ struct CardListView: View {
         .onAppear {
             fetchData()
         }
-        .navigationBarTitle("", displayMode: .inline)
+//        .navigationBarTitle("", displayMode: .inline)
     }
 
     var filteredContacts: [Contact] {
@@ -136,7 +137,7 @@ struct CardListView: View {
 struct CardListItemView: View {
     let contact: Contact
     @State private var showDetails = false
-    @Environment(\.presentationMode) var presentationMode
+//    @Environment(\.presentationMode) var presentationMode
 
 
     var body: some View {

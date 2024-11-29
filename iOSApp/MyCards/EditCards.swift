@@ -12,8 +12,10 @@ struct EditCards: View {
     @State private var email: String = ""
     @State private var phoneNumber: String = ""
     @State private var address: String = ""
+    
     @State private var profession: String = ""
     @State private var role: String = ""
+    
     @State private var company: String = ""
     @State private var whatsapp: String = ""
     @State private var linkedIn: String = ""
@@ -23,6 +25,165 @@ struct EditCards: View {
     @State private var website: String = ""
     @State private var latitude: Double = 0.0
     @State private var longitude: Double = 0.0
+    
+    let categoryIcons: [String: String] = [
+        "Tech": "desktopcomputer",
+        "Doctor": "staroflife",
+        "Education": "book",
+        "Utility": "wrench.and.screwdriver",
+        "Entertainment": "gamecontroller",
+        "Artist": "paintpalette",
+        "Management": "briefcase",
+        "Others": "ellipsis.circle"
+    ]
+    
+    let categories: [String: [String]] = [
+//        "All Cards": [],
+        "Tech": [
+            "SDE",
+            "Software Engineer",
+            "Data Scientist",
+            "Network Administrator",
+            "Web Developer",
+            "Lead IOS Developer",
+            "IOS Developer",
+            "iOS Developer",
+            "UX/UI Designer",
+            "Database Administrator",
+            "DevOps Engineer",
+            "IT Consultant",
+            "System Analyst",
+            "Cybersecurity Analyst",
+            "Mobile App Developer",
+            "AI/Machine Learning Engineer",
+            "Game Developer",
+            "QA Tester",
+            "Cloud Solutions Architect",
+            "Tech Support Specialist",
+            "Technical Writer",
+            "Embedded Systems Engineer",
+            "Network Engineer",
+            "Full Stack Developer",
+            "Tester"
+        ],
+        "Doctor": [
+            "General Practitioner",
+            "Cardiologist",
+            "Dentist",
+            "Orthopedic Surgeon",
+            "Pediatrician",
+            "Ophthalmologist",
+            "Psychiatrist",
+            "Neurologist",
+            "Obstetrician/Gynecologist",
+            "Anesthesiologist",
+            "Radiologist",
+            "Pathologist",
+            "General Surgeon",
+            "Emergency Medicine Physician",
+            "Family Medicine Physician",
+            "Urologist",
+            "Dermatologist",
+            "Oncologist",
+            "Endocrinologist",
+            "Nephrologist"
+        ],
+        "Education": [
+            "Student",
+            "Teacher",
+            "Professor"
+        ],
+
+        "Utility": [
+            "Plumber",
+            "Electrician",
+            "HVAC Technician",
+            "Carpenter",
+            "Mechanic",
+            "Locksmith",
+            "Landscaper",
+            "Painter",
+            "Pool Cleaner",
+            "Appliance Repair Technician",
+            "Roofing Contractor",
+            "Pest Control Technician",
+            "Septic Tank Services",
+            "Glass Installer",
+            "Welder",
+            "Solar Panel Installer",
+            "Elevator Mechanic",
+            "Building Inspector",
+            "Fire Alarm Technician",
+            "Masonry Worker"
+        ],
+        "Entertainment": [
+            "Actor",
+            "Musician",
+            "Video Game Developer",
+            "Film Director",
+            "Cinematographer",
+            "Sound Engineer",
+            "Choreographer",
+            "Costume Designer",
+            "Makeup Artist",
+            "Stunt Performer",
+            "Film Editor",
+            "Set Designer",
+            "Casting Director",
+            "Storyboard Artist",
+            "Location Manager",
+            "Voice Actor",
+            "Script Supervisor",
+            "Film Producer",
+            "Entertainment Lawyer",
+            "Talent Agent"
+        ],
+        "Artist": [
+            "Painter",
+            "Sculptor",
+            "Graphic Designer",
+            "Photographer",
+            "Illustrator",
+            "Printmaker",
+            "Ceramic Artist",
+            "Textile Designer",
+            "Jewelry Designer",
+            "Glassblower",
+            "Digital Artist",
+            "Street Artist",
+            "Installation Artist",
+            "Muralist",
+            "Collage Artist",
+            "Comic Book Artist",
+            "Cartoonist",
+            "Conceptual Artist",
+            "Mixed Media Artist",
+            "Tattoo Artist"
+        ],
+        "Management": [
+            "Project Manager",
+            "HR Manager",
+            "Financial Analyst",
+            "Marketing Manager",
+            "Operations Manager",
+            "Product Manager",
+            "Sales Manager",
+            "Supply Chain Manager",
+            "Business Analyst",
+            "Quality Assurance Manager",
+            "Risk Manager",
+            "IT Manager",
+            "Event Planner",
+            "Public Relations Manager",
+            "Brand Manager",
+            "Facilities Manager",
+            "Customer Success Manager",
+            "Research and Development Manager",
+            "Training and Development Manager",
+            "Legal Operations Manager"
+        ]
+//        "Others": []
+    ]
     
     let db = Firestore.firestore()
 
@@ -76,32 +237,69 @@ struct EditCards: View {
                                 RoundedTextField(label: "Phone number", text: $phoneNumber)
                                     .frame(height: 90)
                                     .padding(.horizontal)
-                                RoundedTextField(label: "Personal Address", text: $address)
-                                    .frame(height: 90)
-                                    .padding(.horizontal)
-                                RoundedTextField(label: "Profession", text: $profession)
-                                    .frame(height: 90)
-                                    .padding(.horizontal)
-                                RoundedTextField(label: "Role", text: $role)
-                                    .frame(height: 90)
-                                    .padding(.horizontal)
+                                
+//                                RoundedTextField(label: "Personal Address", text: $address)
+//                                    .frame(height: 90)
+//                                    .padding(.horizontal)
+                                HStack {
+                                    Text("Professional Information")
+                                        .font(.title2)
+                                        .padding()
+                                        .padding(.horizontal)
+                                    Spacer()
+                                }
+//                                RoundedTextField(label: "Profession", text: $profession)
+//                                    .frame(height: 90)
+//                                    .padding(.horizontal)
+//                                RoundedTextField(label: "Role", text: $role)
+//                                    .frame(height: 90)
+//                                    .padding(.horizontal)
+                                // Profession Selection
+//                                ScrollableCategory(title: "Profession", options: professions, selectedOption: $profession)
+//                                                       
+//                                                       // Role Selection
+//                                ScrollableCategory(title: "Role", options: roles, selectedOption: $role)
+                                
+                                CategorySelector(categories: categories, categoryIcons: categoryIcons, selectedCategory: $profession)
+                                                        
+                                if let roles = categories[profession] {
+                                    ScrollableCategory(title: "Role", options: roles, selectedOption: $role)
+                                                        }
+                                                       
                                 RoundedTextField(label: "Current Company", text: $company)
                                     .frame(height: 90)
                                     .padding(.horizontal)
-                                RoundedTextField(label: "Work Email", text: $email)
-                                    .frame(height: 90)
-                                    .padding(.horizontal)
-                                RoundedTextField(label: "Whatsapp Number", text: $whatsapp)
+//                                RoundedTextField(label: "Description", text: $description)
+//                                    .frame(height: 90)
+//                                    .padding(.horizontal)
+                                Spacer()
+                            }
+                            
+                            VStack{
+                                HStack {
+                                    Text("Social Media")
+                                        .font(.title2)
+                                        .padding()
+                                        .padding(.horizontal)
+                                    Spacer()
+                                }
+                                
+//                                RoundedTextField(label: "Work Email", text: $email)
+//                                    .frame(height: 90)
+//                                    .padding(.horizontal)
+//                                RoundedTextField(label: "Whatsapp Number", text: $whatsapp)
+//                                    .frame(height: 90)
+//                                    .padding(.horizontal)
+//                                
+//                                RoundedTextField(label: "Work Address", text: $address)
+//                                    .frame(height: 90)
+//                                    .padding(.horizontal)
+                                
+                                RoundedTextField(label: "Website", text: $website)
                                     .frame(height: 90)
                                     .padding(.horizontal)
                                 
-                                RoundedTextField(label: "Work Address", text: $address)
-                                    .frame(height: 90)
-                                    .padding(.horizontal)
                                 RoundedTextField(label: "LinkedIn Username", text: $linkedIn)
-                                    .frame(height: 90)
-                                    .padding(.horizontal)
-                                RoundedTextField(label: "Website", text: $website)
                                     .frame(height: 90)
                                     .padding(.horizontal)
                                 RoundedTextField(label: "X Handle", text: $xHandle)
@@ -111,27 +309,27 @@ struct EditCards: View {
                                     .frame(height: 90)
                                     .padding(.horizontal)
                                 
-                                RoundedTextField(label: "Latitude", text: Binding(
-                                    get: { "\(latitude)" },
-                                    set: {
-                                        if let value = Double($0) {
-                                            latitude = value
-                                        }
-                                    }
-                                ))
-                                .frame(height: 90)
-                                .padding(.horizontal)
-
-                                RoundedTextField(label: "Longitude", text: Binding(
-                                    get: { "\(longitude)" },
-                                    set: {
-                                        if let value = Double($0) {
-                                            longitude = value
-                                        }
-                                    }
-                                ))
-                                .frame(height: 90)
-                                .padding(.horizontal)
+//                                RoundedTextField(label: "Latitude", text: Binding(
+//                                    get: { "\(latitude)" },
+//                                    set: {
+//                                        if let value = Double($0) {
+//                                            latitude = value
+//                                        }
+//                                    }
+//                                ))
+//                                .frame(height: 90)
+//                                .padding(.horizontal)
+//
+//                                RoundedTextField(label: "Longitude", text: Binding(
+//                                    get: { "\(longitude)" },
+//                                    set: {
+//                                        if let value = Double($0) {
+//                                            longitude = value
+//                                        }
+//                                    }
+//                                ))
+//                                .frame(height: 90)
+//                                .padding(.horizontal)
                                 
                             }
                             Button(action: {
@@ -238,6 +436,74 @@ struct RoundedTextField: View {
     }
 }
 
+struct ScrollableCategory: View {
+    let title: String
+    let options: [String]
+    @Binding var selectedOption: String
+    
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text(title)
+//                .font(.headline)
+                .padding(.horizontal)
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(options, id: \.self) { option in
+                        Button(action: {
+                            selectedOption = option
+                        }) {
+                            Text(option)
+                                .font(.body)
+                                .padding()
+                                .background(selectedOption == option ? Color.yellow.opacity(0.5) : Color.gray.opacity(0.3))
+                                .cornerRadius(15)
+                                .foregroundColor(.black)
+                        }
+                        .padding(.horizontal, 5)
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+}
+
+struct CategorySelector: View {
+    let categories: [String: [String]]
+    let categoryIcons: [String: String]
+    @Binding var selectedCategory: String
+    
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text("Profession")
+//                .font(.headline)
+//                .padding(.bottom, 5)
+            
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 15) {
+                    ForEach(categories.keys.sorted(), id: \.self) { category in
+                        Button(action: {
+                            selectedCategory = category
+                        }) {
+                            VStack {
+                                Image(systemName: categoryIcons[category] ?? "questionmark.circle")
+                                    .font(.largeTitle)
+                                    .padding()
+                                    .background(selectedCategory == category ? Color.yellow.opacity(0.5) : Color.gray.opacity(0.3))
+                                    .cornerRadius(10)
+                                Text(category)
+                                    .font(.caption)
+                                    .foregroundColor(.black)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+    }
+}
 struct EditCards_Previews: PreviewProvider {
     static var previews: some View {
         let userDataViewModel = UserDataViewModel()

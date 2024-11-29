@@ -637,7 +637,7 @@ struct FinalOnboardingView: View {
                     EditCardsPreviewCard(user: $user)
                 }
 
-                NavigationLink(destination: FirstPage().navigationBarBackButtonHidden(true), isActive: $navigateToFirstPage) {
+                NavigationLink(destination: FirstPage().navigationBarBackButtonHidden(true)) {
                     Button(action: {
                         if let userId = Auth.auth().currentUser?.uid {
                             userData = [

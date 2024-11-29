@@ -526,10 +526,6 @@ struct NextView: View {
         
         }
     
-    
-    
-    
-    
     private func saveCard(for uid: String) {
             guard let currentUserUID = Auth.auth().currentUser?.uid else {
                 print("User not authenticated")
@@ -991,7 +987,7 @@ struct NextView: View {
 
              return users.filter { categoryProfessions.contains($0.designation) }
          }
-     }
+}
 
     struct NextView_Previews: PreviewProvider {
         static var previews: some View {

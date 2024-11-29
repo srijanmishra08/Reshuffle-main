@@ -12,6 +12,7 @@ struct UserCard: Identifiable {
     var role: String
     var company: String
     var category: String
+    
 }
 
 // MARK: - ViewModel
@@ -22,7 +23,6 @@ class ExploreViewModel: ObservableObject {
     @Published var searchText = ""
     @Published var selectedCategory: String? = nil
     @Published var showCategoryPopup = false
-    @Published var isCardListActive = false
 
     // Filter userCards based on searchText and selectedCategory
     var filteredUserCards: [UserCard] {
@@ -63,7 +63,7 @@ class ExploreViewModel: ObservableObject {
 
                 var scannedUIDs = [String]()
                 if let document = document, document.exists {
-                    if var data = document.data(), let existingUIDs = data["scannedUIDs"] as? [String] {
+                    if let data = document.data(), let existingUIDs = data["scannedUIDs"] as? [String] {
                         scannedUIDs = existingUIDs
                     }
                 }
@@ -116,7 +116,7 @@ class ExploreViewModel: ObservableObject {
                         category = "Doctor"
                     case "student", "teacher", "professor":
                         category = "Education"
-                    case "plumber", "electrician", "hvac technician", "carpenter", "mechanic", "locksmith", "landscaper", "painter", "pool cleaner", "appliance repair technician", "roofing contractor", "pest control technician", "septic tank services", "glass installer", "welder", "solar panel installer", "elevator mechanic", "building inspector", "fire alarm technician", "masonry worker":
+                    case "plumber", "electrician", "hvac technician", "carpenter", "mechanic", "locksmith", "landscaper"/*, "painter"*/, "pool cleaner", "appliance repair technician", "roofing contractor", "pest control technician", "septic tank services", "glass installer", "welder", "solar panel installer", "elevator mechanic", "building inspector", "fire alarm technician", "masonry worker":
                         category = "Utility"
                     case "actor", "musician", "video game developer", "film director", "cinematographer", "sound engineer", "choreographer", "costume designer", "makeup artist", "stunt performer", "film editor", "set designer", "casting director", "storyboard artist", "location manager", "voice actor", "script supervisor", "film producer", "entertainment lawyer", "talent agent":
                         category = "Entertainment"
@@ -152,52 +152,54 @@ struct ExploreView: View {
     @StateObject private var viewModel = ExploreViewModel()
 
     var body: some View {
-        VStack {
-            // Search Bar
-            HStack {
-                SearchBar(text: $viewModel.searchText)
-                    .padding(.horizontal)
+        NavigationView{
+            VStack {
+                // Search Bar
+                HStack {
+                    SearchBar(text: $viewModel.searchText)
+                        .padding(.horizontal)
+                        .padding(.top, 16)
+                    //           incorporate in a navigation view and do the eror solving code.. see explore page's code for reference.
+                    NavigationLink(destination: NextView()) {
+                        Image(systemName: "map")
+                            .resizable()
+                            .frame(width: 20, height: 20)
+                            .padding()
+                            .background(Color.white.opacity(0.2))
+                            .cornerRadius(8)
+                            .foregroundColor(.black)
+                    }.navigationBarBackButtonHidden(true)
                     .padding(.top, 16)
+                    .padding(.trailing)
+                }
                 
-                NavigationLink(destination: NextView()) {
-                    Image(systemName: "map")
-                        .resizable()
-                        .frame(width: 20, height: 20)
-                        .padding()
-                        .background(Color.white.opacity(0.2))
-                        .cornerRadius(8)
-                        .foregroundColor(.black)
-                }
-                .padding(.top, 16)
-                .padding(.trailing)
-            }
-
-            Spacer()
-            // Scrollable User Cards List
-            ScrollView {
                 Spacer()
-                VStack(spacing: 16) {
-                    ForEach(viewModel.filteredUserCards) { card in
-                        UserCardView(card: card, viewModel: viewModel)
-                            .padding(.horizontal)
+                // Scrollable User Cards List
+                ScrollView {
+                    Spacer()
+                    VStack(spacing: 16) {
+                        ForEach(viewModel.filteredUserCards) { card in
+                            UserCardView(card: card, viewModel: viewModel)
+                                .padding(.horizontal)
+                        }
                     }
+                }.background(Color(.white))
+                
+                Spacer()
+                
+                // Category Pop-Up
+                if viewModel.showCategoryPopup {
+                    CategoryPopupView(viewModel: viewModel)
+                        .transition(.move(edge: .bottom))
+                        .animation(.easeInOut, value: viewModel.showCategoryPopup)
+                        .padding(.bottom, 20)
                 }
-            }.background(Color(.white))
-            
-            Spacer()
-            
-            // Category Pop-Up
-            if viewModel.showCategoryPopup {
-                CategoryPopupView(viewModel: viewModel)
-                    .transition(.move(edge: .bottom))
-                    .animation(.easeInOut, value: viewModel.showCategoryPopup)
-                    .padding(.bottom, 20)
             }
-        }
-        .background(Color(.white))
-        .onAppear {
-            withAnimation {
-                viewModel.showCategoryPopup = true
+            .background(Color(.white))
+            .onAppear {
+                withAnimation {
+                    viewModel.showCategoryPopup = true
+                }
             }
         }
     }
@@ -259,6 +261,7 @@ struct UserCardView: View {
 // MARK: - CategoryPopupView
 struct CategoryPopupView: View {
     @ObservedObject var viewModel: ExploreViewModel
+//    @State private var navigateToSavedCards = false
 
     let categoryIcons: [String: String] = [
         "All Cards": "square.grid.2x2",
@@ -305,31 +308,23 @@ struct CategoryPopupView: View {
                 }
             }
 
-            // Saved Cards Button inside the popup
-            Button("Saved Cards") {
-                viewModel.isCardListActive = true
+            // Modify the Saved Cards button
+//        this is where the error is the error is basically that it is not inside a navigation view and after that as well it might have the same problem so to fix that add the below line of code where the navigation view ends
+//            .navigationViewStyle(.stack)
+//            you have a ss and a link to fix it check it once
+            NavigationLink(destination: CardListView().navigationBarBackButtonHidden(false)) {
+                Text("Saved Cards")
+                    .font(.title3.bold())
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.gray.opacity(0.3))
+                    .cornerRadius(10)
+                    .foregroundColor(.black)
             }
-            .font(.title3.bold())
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color.gray.opacity(0.3))
-            .cornerRadius(10)
-            .foregroundColor(.black)
             .padding(.top, 10)
-            
-
-            // Navigation to Saved Cards
-            NavigationLink(
-                destination: CardListView(),
-                isActive: $viewModel.isCardListActive
-            ) {
-                EmptyView()
-            }
-            .hidden()
         }
         .padding(.horizontal)
         .cornerRadius(16)
-        
     }
 }
 
@@ -337,6 +332,10 @@ struct CategoryPopupView: View {
 // MARK: - Preview
 struct ExploreView_Previews: PreviewProvider {
     static var previews: some View {
-        ExploreView()
+//        NavigationView {
+            ExploreView()
+//        }
+//        .navigationViewStyle(.stack) // Ensures consistent behavior in iOS
+//
     }
 }
