@@ -4,6 +4,7 @@ import FirebaseAuth
 import Firebase
 import MapKit
 import CodeScanner
+import UIKit
 
 
 class UserDataViewModel: ObservableObject {
@@ -22,6 +23,9 @@ class UserDataViewModel: ObservableObject {
             Firestore.firestore().collection("UserDatabase").document(userID).getDocument { (document, error) in
                 if let document = document, document.exists {
                     if let data = document.data() {
+                        // Convert color string to Color
+                        let colorString = data["cardColor"] as? String ?? "blue"
+                        let cardColor = self.convertStringToColor(colorString)
                         self.businessCard = BusinessCard(id: UUID(), name: data["name"] as? String ?? "",
                                                          profession: data["profession"] as? String ?? "",
                                                          email: data["email"] as? String ?? "",
@@ -35,7 +39,8 @@ class UserDataViewModel: ObservableObject {
                                                          linkedIn: data["linkedIn"] as? String ?? "",
                                                          instagram: data["instagram"] as? String ?? "",
                                                          xHandle: data["xHandle"] as? String ?? "", region: MKCoordinateRegion(center: CLLocationCoordinate2D(), span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)),
-                                                         trackingMode: .follow)
+                                                         trackingMode: .follow,
+                                                cardColor: cardColor)
                     }
                 } else {
                     print("User document not found: \(error?.localizedDescription ?? "Unknown error")")
@@ -50,6 +55,8 @@ class UserDataViewModel: ObservableObject {
 
                 if document.exists {
                     if let data = document.data() {
+                        let colorString = data["cardColor"] as? String ?? "blue"
+                                                let cardColor = self.convertStringToColor(colorString)
                         self.businessCard = BusinessCard(id: UUID(), name: data["name"] as? String ?? "",
                                                          profession: data["profession"] as? String ?? "",
                                                          email: data["email"] as? String ?? "",
@@ -63,7 +70,8 @@ class UserDataViewModel: ObservableObject {
                                                          linkedIn: data["linkedIn"] as? String ?? "",
                                                          instagram: data["instagram"] as? String ?? "",
                                                          xHandle: data["xHandle"] as? String ?? "", region: MKCoordinateRegion(center: CLLocationCoordinate2D(), span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)),
-                                                         trackingMode: .follow)
+                                                         trackingMode: .follow,
+                                                         cardColor: cardColor)
                     }
                 } else {
                     print("User document does not exist.")
@@ -74,6 +82,38 @@ class UserDataViewModel: ObservableObject {
 
     deinit {
         listener?.remove()
+    }
+    private func convertStringToColor(_ colorString: String) -> UIColor {
+        if colorString.hasPrefix("#") {
+            // Convert hex color string to UIColor
+            let hex = colorString.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+            var int = UInt64()
+            Scanner(string: hex).scanHexInt64(&int)
+            let a, r, g, b: UInt64
+            switch hex.count {
+            case 3: // RGB (12-bit)
+                (a, r, g, b) = (255, (int >> 8 * 4) & 0xF, (int >> 4 * 4) & 0xF, int & 0xF)
+                return UIColor(red: CGFloat(r) / 15.0, green: CGFloat(g) / 15.0, blue: CGFloat(b) / 15.0, alpha: CGFloat(a) / 255.0)
+            case 6: // RGB (24-bit)
+                (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+                return UIColor(red: CGFloat(r) / 255.0, green: CGFloat(g) / 255.0, blue: CGFloat(b) / 255.0, alpha: CGFloat(a) / 255.0)
+            case 8: // ARGB (32-bit)
+                (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+                return UIColor(red: CGFloat(r) / 255.0, green: CGFloat(g) / 255.0, blue: CGFloat(b) / 255.0, alpha: CGFloat(a) / 255.0)
+            default:
+                return .systemBlue
+            }
+        }
+        // Existing color name conversion
+        switch colorString.lowercased() {
+        case "blue": return .systemBlue
+        case "green": return .systemGreen
+        case "red": return .systemRed
+        case "purple": return .systemPurple
+        case "orange": return .systemOrange
+        case "pink": return .systemPink
+        default: return .systemBlue // Default color
+        }
     }
 
     func saveScannedUID(_ scannedUID: String) {
@@ -138,6 +178,7 @@ struct MyCards: View {
     )
     @State private var userDataCard: UserDataBusinessCard?
     @State private var isPopupActive = false
+    @State private var selectedCardColor = Color.blue
 
 
     var body: some View {
@@ -184,7 +225,7 @@ struct MyCards: View {
                             Spacer()
                             
                             if let businessCard = userDataViewModel.businessCard {
-                                CustomCardViewPreview(businessCard: businessCard)
+                                CustomCardViewPreview(businessCard: businessCard, cardColor: businessCard.cardColor)
                                     .padding()
                                     .padding(.top)
                                     .padding(.bottom)
@@ -327,9 +368,10 @@ struct MyCards: View {
             VStack(alignment: .leading) {
                 if let userData = userDataViewModel.businessCard {
                     let userDataCard = UserDataBusinessCard(
-                        id: Auth.auth().currentUser?.uid, 
+                        id: Auth.auth().currentUser?.uid,
                         name: userData.name,
                         profession: userData.profession,
+                        role: userData.role,
                         company: userData.company,
                         email: userData.email,
                         phoneNumber: userData.phoneNumber,
@@ -337,7 +379,8 @@ struct MyCards: View {
                         address: userData.address,
                         linkedIn: userData.linkedIn,
                         instagram: userData.instagram,
-                        xHandle: userData.xHandle
+                        xHandle: userData.xHandle,
+                        cardColor: convertUIColorToString(userData.cardColor)
                     )
                     let bindingUserDataCard = Binding.constant(userDataCard)
                     BusinessCardSaved(userData: bindingUserDataCard)
@@ -354,8 +397,21 @@ struct MyCards: View {
             .onAppear {
                 fetchUserData()
             }
+            
         }
-
+        // Add this helper method to convert UIColor to a string representation
+        private func convertUIColorToString(_ color: UIColor) -> String {
+            // This method might need to be expanded to handle more color representations
+            if color == .systemBlue { return "#007AFF" } // Standard iOS blue as hex
+            if color == .systemGreen { return "#34C759" } // Standard iOS green as hex
+            if color == .systemRed { return "#FF3B30" } // Standard iOS red as hex
+            if color == .systemPurple { return "#5856D6" } // Standard iOS purple as hex
+            if color == .systemOrange { return "#FF9500" } // Standard iOS orange as hex
+            if color == .systemPink { return "#FF2D55" } // Standard iOS pink as hex
+            
+            // For custom colors, you might want to implement a method to convert UIColor to hex
+            return "#007AFF" // Default blue
+        }
         private func fetchUserData() {
             isFetchingData = true
 
@@ -390,8 +446,6 @@ struct MyCards: View {
                 }
             }
         }
-    
-
     struct ImagePickerCard: View {
         @Binding var isImagePickerPresented: Bool
         @EnvironmentObject var userDataViewModel: UserDataViewModel
@@ -446,7 +500,6 @@ struct MyCards: View {
             userDataCard = nil
         }
     }
-
     private func fetchUserData() {
         if let currentUserUID = Auth.auth().currentUser?.uid {
             Firestore.firestore().collection("UserDatabase").document(currentUserUID).getDocument { (document, error) in

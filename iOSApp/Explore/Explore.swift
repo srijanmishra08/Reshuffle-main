@@ -74,6 +74,40 @@ struct CategoryDetailsView: View {
         }
     }
 }
+// MARK: - Search Bar Component
+struct MapSearchBar: View {
+    @Binding var text: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundColor(.gray)
+            
+            TextField("Search names, companies...", text: $text)
+                .font(.system(size: 16))
+                .foregroundColor(.primary)
+                .tint(.blue)
+            
+            if !text.isEmpty {
+                Button(action: {
+                    text = ""
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 15)
+                .fill(Color(UIColor.systemBackground))
+                .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+        )
+    }
+}
 struct CustomAnnotationView: View {
     var userDetails: UserDetails
     var viewedUserUID: String?
@@ -180,34 +214,23 @@ struct CustomAnnotationView: View {
 
 
 struct NextView: View {
-    @State private var viewedUserUID: String?
+    // MARK: - Properties
+    @StateObject private var searchViewModel = SearchViewModel()
+    @State private var showSearchResults = true
+    @StateObject private var locationManager = LocationManager()
     @State private var region = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
         span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
     )
-    @State private var isCardListActive = false
-    @StateObject private var searchViewModel = SearchViewModel()
     @State private var filteredAnnotations: [MyAnnotation] = []
-    @State private var locationManager = CLLocationManager()
-    @State private var dragOffset: CGSize = .zero
     @State private var searchCategory = "All Cards"
     @State private var selectedProfession = ""
-    @State private var isSearching = false
-
-    let categoryIcons: [String: String] = [
-        "All Cards": "square.grid.2x2",
-        "Tech": "desktopcomputer",
-        "Doctor": "staroflife",
-        "Education": "book",
-        "Utility": "wrench.and.screwdriver",
-        "Entertainment": "gamecontroller",
-        "Artist": "paintpalette",
-        "Management": "briefcase",
-        "Others": "ellipsis.circle"
-    ]
+    @State private var showCategorySheet = false
+    @State private var followUserLocation = true
+    private let db = Firestore.firestore()
     let categories: [String: [String]] = [
         "All Cards": [],
-        "Tech": [
+        "Tech": ["Tech",
             "SDE",
             "Software Engineer",
             "Data Scientist",
@@ -234,7 +257,7 @@ struct NextView: View {
             "Full Stack Developer",
             "Tester"
         ],
-        "Doctor": [
+        "Doctor": ["Doctor",
             "General Practitioner",
             "Cardiologist",
             "Dentist",
@@ -256,13 +279,13 @@ struct NextView: View {
             "Endocrinologist",
             "Nephrologist"
         ],
-        "Education": [
+        "Education": ["Education",
             "Student",
             "Teacher",
             "Professor"
         ],
 
-        "Utility": [
+        "Utility": ["Utility",
             "Plumber",
             "Electrician",
             "HVAC Technician",
@@ -284,7 +307,7 @@ struct NextView: View {
             "Fire Alarm Technician",
             "Masonry Worker"
         ],
-        "Entertainment": [
+        "Entertainment": ["Entertainment",
             "Actor",
             "Musician",
             "Video Game Developer",
@@ -306,7 +329,7 @@ struct NextView: View {
             "Entertainment Lawyer",
             "Talent Agent"
         ],
-        "Artist": [
+        "Artist": ["Artist",
             "Painter",
             "Sculptor",
             "Graphic Designer",
@@ -328,7 +351,7 @@ struct NextView: View {
             "Mixed Media Artist",
             "Tattoo Artist"
         ],
-        "Management": [
+        "Management": ["Management",
             "Project Manager",
             "HR Manager",
             "Financial Analyst",
@@ -352,180 +375,174 @@ struct NextView: View {
         ],
         "Others": []
     ]
-    @State private var isPopoverPresented = false
-    @State private var popoverContent: AnyView?
-    @State private var followUserLocation = true
     
-    private let db = Firestore.firestore()
-
+    // MARK: - Body
     var body: some View {
-        NavigationView {
-            VStack {
-                ZStack(alignment: .bottomTrailing) {
-                    Map(coordinateRegion: $region, showsUserLocation: true, userTrackingMode: .constant(followUserLocation ? .follow : .none), annotationItems: filteredAnnotations) { location in
-                        MapAnnotation(coordinate: location.coordinate) {
-                            CustomAnnotationView(userDetails: location.userDetails,
-                                                 viewedUserUID: location.userDetails.id,
-                                                 onSaveCard: {
-                                saveCard(for: location.userDetails.id ?? "")
-                            })
-                            .onTapGesture {
-                            }
-                            .onAppear {
-                                        loadInitialAnnotations()
-                                    }
-                        }
-                    }
-                    .mapControls{
-                        MapCompass()
-                        MapPitchToggle()
-                    }
-                    .frame(height: UIScreen.main.bounds.height * 0.7)
-                    .mapStyle(.standard)
-                    .onAppear {
-                        locationManager.requestWhenInUseAuthorization()
-                        if let userLocation = locationManager.location?.coordinate {
-                            region.center = userLocation
-                        }
-                        fetchUserLocations()
-                    }
-                    
-                    VStack {
-                        TextField("🔍    Search names, companies, and professions", text: $searchViewModel.searchText)
-                            .padding()
-                            .background(Color.white.opacity(0.9))
-                            .cornerRadius(10)
-                            .foregroundColor(.black)
-                            .padding(.horizontal)
-                            .padding(.top, 150)
-                            .padding(.bottom, 10)
-                            .onChange(of: searchViewModel.searchText) { searchText in
-                                filterAnnotations(for: searchText, inCategory: searchCategory)
-                            }
-                        
-                        if isSearching {
-                            Picker("Profession", selection: $selectedProfession) {
-                                ForEach(categories[searchCategory] ?? [], id: \.self) { profession in
-                                    Text(profession)
+        ZStack(alignment: .top) {
+            // Map View
+            Map(coordinateRegion: $region,
+                showsUserLocation: true,
+                userTrackingMode: .constant(followUserLocation ? .follow : .none),
+                annotationItems: filteredAnnotations) { location in
+                MapAnnotation(coordinate: location.coordinate) {
+                    CustomAnnotationView(
+                        userDetails: location.userDetails,
+                        viewedUserUID: location.userDetails.id,
+                        onSaveCard: { saveCard(for: location.userDetails.id ?? "") }
+                    )
+                }
+            }
+            .mapControls {
+                MapCompass()
+                MapPitchToggle()
+            }
+            .ignoresSafeArea(edges: .top)
+            
+            // Search and Controls Overlay
+            VStack(spacing: 0) {
+                MapSearchBar(text: $searchViewModel.searchText)
+                                   .padding(.horizontal)
+                                   .padding(.top)
+                                   .onChange(of: searchViewModel.searchText) { newValue in
+                                       filterAnnotations(for: newValue, inCategory: searchCategory)
+                                       showSearchResults = !newValue.isEmpty
+                                   }
+                               
+                               // Updated Search Results
+                               if !searchViewModel.searchText.isEmpty && showSearchResults {
+                                   searchResults
+                                       .background(
+                                           RoundedRectangle(cornerRadius: 15)
+                                               .fill(Color(UIColor.systemBackground).opacity(0.98))
+                                               .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                                       )
+                                       .padding(.horizontal)
+                               }
+                
+                Spacer()
+                Spacer()
+                // Map Controls
+                mapControls
+                    .padding(.bottom, 20)
+                
+                // Category Sheet Button
+                Button(action: { showCategorySheet = true }) {
+                    Text("Categories")
+                        .font(.headline)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(.white)
+                        .cornerRadius(15)
+                }
+                .padding()
+                
+                
+            }
+        }
+        .sheet(isPresented: $showCategorySheet) {
+            CategorySheetView(
+                selectedCategory: $searchCategory,
+                onCategorySelected: { category in
+                    filterAnnotations(for: searchViewModel.searchText, inCategory: category)
+                    showCategorySheet = false
+                }
+            )
+            .presentationDetents([.medium])
+        }
+        .onAppear {
+            locationManager.requestLocationPermission()
+            if let location = locationManager.userLocation {
+                region.center = location
+            }
+            fetchUserLocations()
+        }
+    }
+    
+    // MARK: - Components
+    
+    private var searchBar: some View {
+        TextField("🔍    Search names, companies, and professions", text: $searchViewModel.searchText)
+            .padding(12)
+            .textFieldStyle(RoundedBorderTextFieldStyle())
+            .padding(.horizontal, 16)
+            .onChange(of: searchViewModel.searchText) { newValue in
+                filterAnnotations(for: newValue, inCategory: searchCategory)
+                showSearchResults = !newValue.isEmpty // Show results only if search text is not empty
+            }
+    }
+
+    private var searchResults: some View {
+        if showSearchResults {
+            return AnyView(
+                ScrollView {
+                    LazyVStack(alignment: .leading) {
+                        ForEach(filteredAnnotations) { annotation in
+                            Button {
+                                withAnimation {
+                                    region.center = annotation.coordinate // Focus on location
+                                    showSearchResults = false // Dismiss search results
+                                    searchViewModel.searchText = "" // Clear search text
                                 }
+                            } label: {
+                                VStack(alignment: .leading) {
+                                    Text(annotation.userDetails.firstName)
+                                        .font(.headline)
+                                    Text(annotation.userDetails.designation)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(.ultraThinMaterial)
+                                .cornerRadius(10)
                             }
-                            .pickerStyle(MenuPickerStyle())
-                            .onChange(of: searchViewModel.searchText) { searchText in
-                                filterAnnotations(for: searchText, inCategory: searchCategory)
-                            }
-                            .onChange(of: selectedProfession) { _ in
-                                filterAnnotations(for: searchViewModel.searchText, inCategory: searchCategory)
-                            }
-                            .padding(.horizontal)
-                            .padding(.bottom, 10)
-                        }
-                        
-                        Spacer()
-                    }
-                    
-                    
-                    VStack(spacing: 20) {
-                        Button(action: {
-                            region.span.latitudeDelta /= 2
-                            region.span.longitudeDelta /= 2
-                        }) {
-                            Image(systemName: "plus.circle.fill")
-                                .resizable()
-                                .frame(width: 40, height: 40)
-                                .foregroundColor(.black.opacity(0.8))
-                        }
-                        
-                        Button(action: {
-                            region.span.latitudeDelta *= 2
-                            region.span.longitudeDelta *= 2
-                        }) {
-                            Image(systemName: "minus.circle.fill")
-                                .resizable()
-                                .frame(width: 40, height: 40)
-                                .foregroundColor(.black.opacity(0.8))
-                        }
-                        
-                        Button(action: {
-                            followUserLocation.toggle()
-                            
-                            if followUserLocation, let userLocation = locationManager.location?.coordinate {
-                                region.center = userLocation
-                            }
-                        }) {
-                            Image(systemName: followUserLocation ? "location.fill" : "location")
-                                .resizable()
-                                .frame(width: 40, height: 40)
-                                .foregroundColor(followUserLocation ? .blue : .black.opacity(0.8))
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding()
                 }
-                .padding(.bottom, 5)
-                
-                VStack {
-                    Text("Categories")
-                        .font(.title.bold())
-                }
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(categories.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
-                            Button(action: {
-                                showUserDetailsCategory(for: key)
-                            }) {
-                                VStack {
-                                    Image(systemName: categoryIcons[key] ?? "questionmark.circle")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 25, height: 25)
-                                    Text(key)
-                                        .font(.body)
-                                        .padding(.top, 5)
-                                }
-                                .frame(width: 75, height: 60)
-                                .padding()
-                                .background(Color.gray.opacity(0.3))
-                                .cornerRadius(15)
-                                .foregroundColor(.black)
-                            }
-                            .padding(.horizontal, 5)
-                        }
-                    }
-                }
-                
-                Spacer()
-                
-                NavigationLink(
-                    destination: CardListView(),
-                    isActive: $isCardListActive
-                ) {
-                    EmptyView()
-                }
-                .hidden()
-                
-                Button("Saved Cards") {
-                    isCardListActive = true
-                }
-                .font(.title3.bold())
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.gray.opacity(0.3))
-                .cornerRadius(10)
-                .foregroundColor(.black)
-                .padding(.top, 10)
-                .padding(.horizontal)
-                .padding(.bottom, 80)
-                .popover(isPresented: $isPopoverPresented) {
-                    popoverContent
-                }
-            }
-            .accentColor(.black)
-            .padding(.bottom, 80)
+                .frame(maxHeight: 200)
+                .background(.ultraThinMaterial)
+            )
+        } else {
+            return AnyView(EmptyView())
         }
     }
-    private func loadInitialAnnotations() {
-        
-        }
     
+    private var mapControls: some View {
+        HStack {
+            Spacer()
+            VStack(spacing: 20) {
+                // Zoom controls
+                Button { region.span.latitudeDelta /= 2 } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .resizable()
+                        .frame(width: 40, height: 40)
+                }
+                
+                Button { region.span.latitudeDelta *= 2 } label: {
+                    Image(systemName: "minus.circle.fill")
+                        .resizable()
+                        .frame(width: 40, height: 40)
+                }
+                
+                // Location tracking
+                Button {
+                    followUserLocation.toggle()
+                    if followUserLocation, let location = locationManager.userLocation {
+                        region.center = location
+                    }
+                } label: {
+                    Image(systemName: followUserLocation ? "location.circle.fill" : "location.circle")
+                        .resizable()
+                        .frame(width: 40, height: 40)
+                        .foregroundColor(followUserLocation ? .black : .black)
+                }
+            }
+            .foregroundColor(.black)
+            .padding()
+        }
+    }
     private func saveCard(for uid: String) {
             guard let currentUserUID = Auth.auth().currentUser?.uid else {
                 print("User not authenticated")
@@ -574,11 +591,11 @@ struct NextView: View {
                     annotation.userDetails.designation.localizedCaseInsensitiveContains(searchText) ||
                     annotation.userDetails.company.localizedCaseInsensitiveContains(searchText)
 
-//                let professionMatch = selectedProfession.isEmpty || categories[category]?.contains(annotation.userDetails.designation) == true
-//
-//                let categoryMatch = category == "All Cards" || categories[category]?.contains(annotation.userDetails.designation) == true
+                let professionMatch = selectedProfession.isEmpty || categories[category]?.contains(annotation.userDetails.designation) == true
 
-                return searchTextMatch /*&& professionMatch && categoryMatch*/
+                let categoryMatch = category == "All Cards" || categories[category]?.contains(annotation.userDetails.designation) == true
+
+                return searchTextMatch && professionMatch && categoryMatch
             }
         }
         if let firstResult = filteredAnnotations.first {
@@ -632,361 +649,6 @@ struct NextView: View {
         }
     }
     
-    private func showUserDetailsCategory(for category: String) {
-            let db = Firestore.firestore()
-            
-        if category == "All Cards" {
-                    db.collection("UserDatabase").getDocuments { (querySnapshot, error) in
-                        guard let documents = querySnapshot?.documents else {
-                            print("Error fetching documents: \(error?.localizedDescription ?? "Unknown error")")
-                            return
-                        }
-                        
-                        let allUsers: [UserDetailsCategory] = documents.map { document in
-                            guard let firstName = document["name"] as? String,
-                                  let designation = document["profession"] as? String,
-                                  let company = document["company"] as? String,
-                                  let phoneNumber = document["phoneNumber"] as? String,
-                                  let email = document["email"] as? String,
-                                  let latitude = document["latitude"] as? Double,
-                                  let longitude = document["longitude"] as? Double
-                            else {
-                                print("Missing or invalid data for a user")
-                            
-                                return nil
-                            }
-                            
-                            return UserDetailsCategory(firstName: firstName, designation: designation, company: company, phoneNumber: phoneNumber, email: email, latitude: latitude, longitude: longitude)
-                        }.compactMap { $0 }
-                        
-                        let categorizedUsers = categorizeUsersCategory(allUsers, for: category)
-                        presentUserDetailsPopupCategory(users: categorizedUsers)
-                    }
-                } else {
-                    db.collection("UserDatabase").whereField("profession", isNotEqualTo: "").getDocuments { (querySnapshot, error) in
-                        guard let documents = querySnapshot?.documents else {
-                            print("Error fetching documents: \(error?.localizedDescription ?? "Unknown error")")
-                            return
-                        }
-                        if let userDocument = documents.first {
-                                        if let latitude = userDocument["latitude"] as? Double,
-                                           let longitude = userDocument["longitude"] as? Double {
-                                            let selectedRegion = MKCoordinateRegion(
-                                                center: CLLocationCoordinate2D(latitude: latitude, longitude: longitude),
-                                                span: MKCoordinateSpan(latitudeDelta: 0.2, longitudeDelta: 0.2)
-                                            )
-                                            self.region = selectedRegion
-                                        }
-                                    }
-                        
-                        let filteredUsers: [UserDetailsCategory] = documents.compactMap { document in
-                            guard let firstName = document["name"] as? String,
-                                  let designation = document["profession"] as? String,
-                                  let company = document["company"] as? String,
-                                  let phoneNumber = document["phoneNumber"] as? String,
-                                  let email = document["email"] as? String,
-                                  let latitude = document["latitude"] as? Double,
-                                  let longitude = document["longitude"] as? Double
-                            else {
-                                print("Missing or invalid data for a user")
-                                
-                                return nil
-                            }
-                            
-                            return UserDetailsCategory(firstName: firstName, designation: designation, company: company, phoneNumber: phoneNumber, email: email, latitude: latitude, longitude: longitude)
-                        }.compactMap { $0 }
-                        
-                        let categorizedUsers = categorizeUsersCategory(filteredUsers, for: category)
-                        presentUserDetailsPopupCategory(users: categorizedUsers)
-                    }
-                }
-            }
-
-    private func presentUserDetailsPopupCategory(users: [UserDetailsCategory]) {
-        guard let userLocation = locationManager.location else {
-            print("User location not available")
-            return
-        }
-
-        var usersWithDistance: [(UserDetailsCategory, Double, String)] = []
-        for user in users {
-            let userCoordinate = CLLocation(latitude: user.latitude, longitude: user.longitude)
-            let distance = userLocation.distance(from: userCoordinate)
-            
-            var distanceString: String
-            if distance < 1000 {
-                distanceString = "\(Int(distance)) meters"
-            } else {
-                let distanceInKm = distance / 1000
-                distanceString = String(format: "%.2f", distanceInKm) + " kms"
-            }
-            
-            usersWithDistance.append((user, distance, distanceString))
-        }
-
-        let popupContent: some View = ScrollView {
-            VStack(alignment: .leading) {
-                ForEach(usersWithDistance, id: \.0) { user, distance, distanceString in
-                    Button(action: {
-                        let userCoordinate = CLLocationCoordinate2D(latitude: user.latitude, longitude: user.longitude)
-                        updateMapRegion(to: userCoordinate)
-                    }) {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text("\(user.firstName)")
-                                    .font(.headline)
-                                Text("\(user.designation), \(user.company)")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                            }
-                            Spacer()
-                            Text("\(distanceString) away")
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
-                        }
-                        .padding(5)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .foregroundColor(.black)
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .padding(.vertical, 5)
-                    
-                   Divider().background(Color.gray)
-                }
-            }
-            .padding()
-        }
-
-        popoverContent = AnyView(popupContent)
-        isPopoverPresented = true
-    }
-
-    private func updateMapRegion(to coordinate: CLLocationCoordinate2D) {
-        withAnimation {
-            region.center = coordinate
-        }
-    }
-
-
-
-
-    private func categorizeUsersCategory(_ users: [UserDetailsCategory], for category: String) -> [UserDetailsCategory] {
-             if category == "All Cards" {
-                         return users
-                     }
-             let categoryProfessions: Set<String>
-
-             switch category {
-             case "Tech":
-                 categoryProfessions = Set([
-                     "SDE", "Software Engineer", "Data Scientist", "Network Administrator","Lead IOS Developer",
-                     "IOS Developer",
-                     "iOS Developer",
-                     "Web Developer", "UX/UI Designer", "Database Administrator", "DevOps Engineer",
-                     "IT Consultant", "System Analyst", "Cybersecurity Analyst", "Mobile App Developer",
-                     "AI/Machine Learning Engineer", "Game Developer", "QA Tester", "Cloud Solutions Architect",
-                     "Tech Support Specialist", "Technical Writer", "Embedded Systems Engineer",
-                     "Network Engineer", "Full Stack Developer", "Tester"
-                 ])
-             case "Doctor":
-                 categoryProfessions = Set([
-                     "General Practitioner", "Cardiologist", "Dentist", "Orthopedic Surgeon",
-                     "Pediatrician", "Ophthalmologist", "Psychiatrist", "Neurologist",
-                     "Obstetrician/Gynecologist", "Anesthesiologist", "Radiologist", "Pathologist",
-                     "General Surgeon", "Emergency Medicine Physician", "Family Medicine Physician",
-                     "Urologist", "Dermatologist", "Oncologist", "Endocrinologist", "Nephrologist"
-                 ])
-             case "Utility":
-                 categoryProfessions = Set([
-                     "Plumber", "Electrician", "HVAC Technician", "Carpenter", "Mechanic",
-                     "Locksmith", "Landscaper", "Painter", "Pool Cleaner", "Appliance Repair Technician",
-                     "Roofing Contractor", "Pest Control Technician", "Septic Tank Services", "Glass Installer",
-                     "Welder", "Solar Panel Installer", "Elevator Mechanic", "Building Inspector",
-                     "Fire Alarm Technician", "Masonry Worker"
-                 ])
-             case "Entertainment":
-                 categoryProfessions = Set([
-                     "Actor", "Musician", "Video Game Developer", "Film Director", "Cinematographer",
-                     "Sound Engineer", "Choreographer", "Costume Designer", "Makeup Artist", "Stunt Performer",
-                     "Film Editor", "Set Designer", "Casting Director", "Storyboard Artist", "Location Manager",
-                     "Voice Actor", "Script Supervisor", "Film Producer", "Entertainment Lawyer", "Talent Agent"
-                 ])
-             case "Artist":
-                 categoryProfessions = Set([
-                     "Painter", "Sculptor", "Graphic Designer", "Photographer", "Illustrator",
-                     "Printmaker", "Ceramic Artist", "Textile Designer", "Jewelry Designer", "Glassblower",
-                     "Digital Artist", "Street Artist", "Installation Artist", "Muralist", "Collage Artist",
-                     "Comic Book Artist", "Cartoonist", "Conceptual Artist", "Mixed Media Artist", "Tattoo Artist"
-                 ])
-             case "Education":
-                 categoryProfessions = Set([
-                     "Student","Teacher","Professor"
-                 ])
-             case "Management":
-                 categoryProfessions = Set([
-                     "Project Manager", "HR Manager", "Financial Analyst", "Marketing Manager",
-                     "Operations Manager", "Product Manager", "Sales Manager", "Supply Chain Manager",
-                     "Business Analyst", "Quality Assurance Manager", "Risk Manager", "IT Manager",
-                     "Event Planner", "Public Relations Manager", "Brand Manager", "Facilities Manager",
-                     "Customer Success Manager", "Research and Development Manager", "Training and Development Manager",
-                     "Legal Operations Manager"
-                 ])
-             default:
-                 return users.filter { !$0.designation.isEmpty }
-             }
-
-             return users.filter { categoryProfessions.contains($0.designation) }
-         }
-
-    private func showUserDetails(for category: String) {
-            let db = Firestore.firestore()
-            
-            if category == "All Cards" {
-                db.collection("UserDatabase").getDocuments { (querySnapshot, error) in
-                    guard let documents = querySnapshot?.documents else {
-                        print("Error fetching documents: \(error?.localizedDescription ?? "Unknown error")")
-                        return
-                    }
-                    
-                    let allUsers: [UserDetails] = documents.compactMap { document in
-                        guard let firstName = document["name"] as? String,
-                              let designation = document["profession"] as? String,
-                              let company = document["company"] as? String,
-                              let phoneNumber = document["phoneNumber"] as? String,
-                              let email = document["email"] as? String else {
-                            print("Missing or invalid data for a user")
-                            return nil
-                        }
-                        
-                        
-                        let id = document["id"] as? String
-                        
-                        return UserDetails(id: id, firstName: firstName, designation: designation, company: company, phoneNumber: phoneNumber, email: email)
-                    }
-                    
-                    let categorizedUsers = categorizeUsers(allUsers, for: category)
-                    presentUserDetailsPopup(users: categorizedUsers)
-                }
-            } else {
-                db.collection("UserDatabase").whereField("profession", isNotEqualTo: "").getDocuments { (querySnapshot, error) in
-                    guard let documents = querySnapshot?.documents else {
-                        print("Error fetching documents: \(error?.localizedDescription ?? "Unknown error")")
-                        return
-                    }
-                    
-                    let filteredUsers: [UserDetails] = documents.compactMap { document in
-                        guard let firstName = document["name"] as? String,
-                              let designation = document["profession"] as? String,
-                              let company = document["company"] as? String,
-                              let phoneNumber = document["phoneNumber"] as? String,
-                              let email = document["email"] as? String else {
-                            print("Missing or invalid data for a user")
-                            return nil
-                        }
-                        let id = document["id"] as? String
-                        
-                        return UserDetails(id: id, firstName: firstName, designation: designation, company: company, phoneNumber: phoneNumber, email: email)
-                    }
-                    
-                    
-                    let categorizedUsers = categorizeUsers(filteredUsers, for: category)
-                    presentUserDetailsPopup(users: categorizedUsers)
-                }
-            }
-        }
-
-
-    private func presentUserDetailsPopup(users: [UserDetails]) {
-        let popupContent: some View = ScrollView {
-            VStack(alignment: .leading) {
-                ForEach(users) { user in
-                    VStack(alignment: .leading) {
-                        Text("\(user.firstName)")
-                            .font(.headline)
-                        Text("\(user.designation), \(user.company)")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                        Divider()
-                    }
-                    .padding()
-                }
-            }
-        }
-       
-        popoverContent = AnyView(popupContent)
-
-        isPopoverPresented = true
-    }
-
-
-    private func categorizeUsers(_ users: [UserDetails], for category: String) -> [UserDetails] {
-             if category == "All Cards" {
-                         return users
-                     }
-             let categoryProfessions: Set<String>
-
-             switch category {
-             case "Tech":
-                 categoryProfessions = Set([
-                     "SDE", "Software Engineer", "Data Scientist", "Network Administrator","Lead IOS Developer",
-                     "IOS Developer",
-                     "iOS Developer",
-                     "Web Developer", "UX/UI Designer", "Database Administrator", "DevOps Engineer",
-                     "IT Consultant", "System Analyst", "Cybersecurity Analyst", "Mobile App Developer",
-                     "AI/Machine Learning Engineer", "Game Developer", "QA Tester", "Cloud Solutions Architect",
-                     "Tech Support Specialist", "Technical Writer", "Embedded Systems Engineer",
-                     "Network Engineer", "Full Stack Developer", "Tester"
-                 ])
-             case "Doctor":
-                 categoryProfessions = Set([
-                     "General Practitioner", "Cardiologist", "Dentist", "Orthopedic Surgeon",
-                     "Pediatrician", "Ophthalmologist", "Psychiatrist", "Neurologist",
-                     "Obstetrician/Gynecologist", "Anesthesiologist", "Radiologist", "Pathologist",
-                     "General Surgeon", "Emergency Medicine Physician", "Family Medicine Physician",
-                     "Urologist", "Dermatologist", "Oncologist", "Endocrinologist", "Nephrologist"
-                 ])
-             case "Utility":
-                 categoryProfessions = Set([
-                     "Plumber", "Electrician", "HVAC Technician", "Carpenter", "Mechanic",
-                     "Locksmith", "Landscaper", "Painter", "Pool Cleaner", "Appliance Repair Technician",
-                     "Roofing Contractor", "Pest Control Technician", "Septic Tank Services", "Glass Installer",
-                     "Welder", "Solar Panel Installer", "Elevator Mechanic", "Building Inspector",
-                     "Fire Alarm Technician", "Masonry Worker"
-                 ])
-             case "Entertainment":
-                 categoryProfessions = Set([
-                     "Actor", "Musician", "Video Game Developer", "Film Director", "Cinematographer",
-                     "Sound Engineer", "Choreographer", "Costume Designer", "Makeup Artist", "Stunt Performer",
-                     "Film Editor", "Set Designer", "Casting Director", "Storyboard Artist", "Location Manager",
-                     "Voice Actor", "Script Supervisor", "Film Producer", "Entertainment Lawyer", "Talent Agent"
-                 ])
-             case "Artist":
-                 categoryProfessions = Set([
-                     "Painter", "Sculptor", "Graphic Designer", "Photographer", "Illustrator",
-                     "Printmaker", "Ceramic Artist", "Textile Designer", "Jewelry Designer", "Glassblower",
-                     "Digital Artist", "Street Artist", "Installation Artist", "Muralist", "Collage Artist",
-                     "Comic Book Artist", "Cartoonist", "Conceptual Artist", "Mixed Media Artist", "Tattoo Artist"
-                 ])
-             case "Education":
-                 categoryProfessions = Set([
-                     "Student","Teacher","Professor"
-                 ])
-             case "Management":
-                 categoryProfessions = Set([
-                     "Project Manager", "HR Manager", "Financial Analyst", "Marketing Manager",
-                     "Operations Manager", "Product Manager", "Sales Manager", "Supply Chain Manager",
-                     "Business Analyst", "Quality Assurance Manager", "Risk Manager", "IT Manager",
-                     "Event Planner", "Public Relations Manager", "Brand Manager", "Facilities Manager",
-                     "Customer Success Manager", "Research and Development Manager", "Training and Development Manager",
-                     "Legal Operations Manager"
-                 ])
-             default:
-                 return users.filter { !$0.designation.isEmpty }
-             }
-
-             return users.filter { categoryProfessions.contains($0.designation) }
-         }
 }
 
     struct NextView_Previews: PreviewProvider {
@@ -994,3 +656,67 @@ struct NextView: View {
             NextView()
         }
     }
+
+struct CategorySheetView: View {
+    @Binding var selectedCategory: String
+    let onCategorySelected: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    let categories = [
+        "All Cards", "Tech", "Doctor", "Education",
+        "Utility", "Entertainment", "Artist", "Management", "Others"
+    ]
+    
+    let categoryIcons: [String: String] = [
+        "All Cards": "square.grid.2x2",
+        "Tech": "desktopcomputer",
+        "Doctor": "staroflife",
+        "Education": "book",
+        "Utility": "wrench.and.screwdriver",
+        "Entertainment": "gamecontroller",
+        "Artist": "paintpalette",
+        "Management": "briefcase",
+        "Others": "ellipsis.circle"
+    ]
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: 20) {
+                    ForEach(categories, id: \.self) { category in
+                        Button {
+                            selectedCategory = category
+                            onCategorySelected(category)
+                        } label: {
+                            VStack {
+                                Image(systemName: categoryIcons[category] ?? "questionmark.circle")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 30, height: 30)
+                                Text(category)
+                                    .font(.caption)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(width: 90, height: 90)
+                            .background(selectedCategory == category ? Color.blue.opacity(0.2) : Color.gray.opacity(0.1))
+                            .cornerRadius(15)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Categories")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+}

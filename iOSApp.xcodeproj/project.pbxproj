@@ -7,14 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		12050FF52D168059001AEF27 /* NFCBusinessCardSharingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12050FF42D168059001AEF27 /* NFCBusinessCardSharingViewModel.swift */; };
+		12050FF72D16806E001AEF27 /* NFCSharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12050FF62D16806E001AEF27 /* NFCSharingView.swift */; };
 		122CBB0C2CE09890003CF7EA /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 122CBB0B2CE09890003CF7EA /* ExploreView.swift */; };
 		126018B02CA7023E00E0788C /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 126018AF2CA7023E00E0788C /* GoogleService-Info.plist */; };
+		129466722CF9F13100DDE432 /* Maps.swift in Sources */ = {isa = PBXBuildFile; fileRef = 129466712CF9F13100DDE432 /* Maps.swift */; };
+		129466742CFC520300DDE432 /* NFCManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 129466732CFC520300DDE432 /* NFCManager.swift */; };
 		12978C7B2CC4E5B200CA653A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 12978C7A2CC4E5B200CA653A /* WidgetKit.framework */; };
 		12978C7D2CC4E5B200CA653A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 12978C7C2CC4E5B200CA653A /* SwiftUI.framework */; };
 		12978C8E2CC4E5B400CA653A /* ReshuffleWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 12978C782CC4E5B200CA653A /* ReshuffleWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		12978CA62CC4F30E00CA653A /* BarcodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5321E9612B87BB9F007BDA85 /* BarcodeView.swift */; };
 		12C8943E2CAA8784000C3C73 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C8943B2CAA8784000C3C73 /* LocationManager.swift */; };
 		12C8943F2CAA8784000C3C73 /* SavedCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C8943C2CAA8784000C3C73 /* SavedCards.swift */; };
+		12DB8DD22D06D57500203B68 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12DB8DD12D06D57500203B68 /* NotificationManager.swift */; };
 		530EE0C82B8B00AF00B2F5BB /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 530EE0C72B8B00AF00B2F5BB /* AppDelegate.swift */; };
 		530EE0CA2B8B00EC00B2F5BB /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 530EE0C92B8B00EC00B2F5BB /* SceneDelegate.swift */; };
 		530EE0CE2B8B014800B2F5BB /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 530EE0CD2B8B014800B2F5BB /* SessionStore.swift */; };
@@ -126,13 +131,19 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		12050FF42D168059001AEF27 /* NFCBusinessCardSharingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFCBusinessCardSharingViewModel.swift; sourceTree = "<group>"; };
+		12050FF62D16806E001AEF27 /* NFCSharingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFCSharingView.swift; sourceTree = "<group>"; };
 		122CBB0B2CE09890003CF7EA /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
 		126018AF2CA7023E00E0788C /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		129466712CF9F13100DDE432 /* Maps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Maps.swift; sourceTree = "<group>"; };
+		129466732CFC520300DDE432 /* NFCManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFCManager.swift; sourceTree = "<group>"; };
 		12978C782CC4E5B200CA653A /* ReshuffleWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ReshuffleWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		12978C7A2CC4E5B200CA653A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		12978C7C2CC4E5B200CA653A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		12C8943B2CAA8784000C3C73 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		12C8943C2CAA8784000C3C73 /* SavedCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedCards.swift; sourceTree = "<group>"; };
+		12DB8DD02D041E0C00203B68 /* iOSApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = iOSApp.entitlements; sourceTree = "<group>"; };
+		12DB8DD12D06D57500203B68 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		530EE0C72B8B00AF00B2F5BB /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		530EE0C92B8B00EC00B2F5BB /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		530EE0CD2B8B014800B2F5BB /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
@@ -249,7 +260,11 @@
 			isa = PBXGroup;
 			children = (
 				53D54E232B29A2980054F3E3 /* MyCards.swift */,
+				129466732CFC520300DDE432 /* NFCManager.swift */,
+				12050FF62D16806E001AEF27 /* NFCSharingView.swift */,
+				12050FF42D168059001AEF27 /* NFCBusinessCardSharingViewModel.swift */,
 				7F6583472B4E452E00BECAE3 /* NotificationsView.swift */,
+				12DB8DD12D06D57500203B68 /* NotificationManager.swift */,
 				53F9A9762B4137CC00FB72AD /* BusinessCard.swift */,
 				535B1EF12B9C3F7200AF9F42 /* BusinessCardMyCards.swift */,
 				5321E9612B87BB9F007BDA85 /* BarcodeView.swift */,
@@ -274,6 +289,7 @@
 			isa = PBXGroup;
 			children = (
 				533DD54C2B28690400692972 /* Explore.swift */,
+				129466712CF9F13100DDE432 /* Maps.swift */,
 				12C8943B2CAA8784000C3C73 /* LocationManager.swift */,
 				12C8943C2CAA8784000C3C73 /* SavedCards.swift */,
 				535B1EF32B9CA07500AF9F42 /* BusinessCardSaved.swift */,
@@ -380,6 +396,7 @@
 		533DD53D2B2864D700692972 /* iOSApp */ = {
 			isa = PBXGroup;
 			children = (
+				12DB8DD02D041E0C00203B68 /* iOSApp.entitlements */,
 				53FFA5412B84C1B100ADA93B /* Info.plist */,
 				533DD53E2B2864D700692972 /* iOSAppApp.swift */,
 				533DD5402B2864D700692972 /* ContentView.swift */,
@@ -567,6 +584,7 @@
 			files = (
 				530EE0F02B8B069800B2F5BB /* ChatsView.swift in Sources */,
 				530EE0D62B8B041900B2F5BB /* ImageCache.swift in Sources */,
+				129466722CF9F13100DDE432 /* Maps.swift in Sources */,
 				533DD5412B2864D700692972 /* ContentView.swift in Sources */,
 				533DD53F2B2864D700692972 /* iOSAppApp.swift in Sources */,
 				533DD54D2B28690400692972 /* Explore.swift in Sources */,
@@ -590,6 +608,8 @@
 				530EE0C82B8B00AF00B2F5BB /* AppDelegate.swift in Sources */,
 				53D54E242B29A2980054F3E3 /* MyCards.swift in Sources */,
 				530EE0E22B8B04DB00B2F5BB /* ImagePicker.swift in Sources */,
+				12DB8DD22D06D57500203B68 /* NotificationManager.swift in Sources */,
+				12050FF72D16806E001AEF27 /* NFCSharingView.swift in Sources */,
 				532E41AB2B2B46A1001664A3 /* LoginView.swift in Sources */,
 				7F6583482B4E452E00BECAE3 /* NotificationsView.swift in Sources */,
 				122CBB0C2CE09890003CF7EA /* ExploreView.swift in Sources */,
@@ -597,9 +617,11 @@
 				530EE0F22B8B06BC00B2F5BB /* NewChatsView.swift in Sources */,
 				530EE0DC2B8B047300B2F5BB /* Constants.swift in Sources */,
 				12C8943E2CAA8784000C3C73 /* LocationManager.swift in Sources */,
+				129466742CFC520300DDE432 /* NFCManager.swift in Sources */,
 				12C8943F2CAA8784000C3C73 /* SavedCards.swift in Sources */,
 				530EE0D02B8B01E700B2F5BB /* User.swift in Sources */,
 				53C0AE102B2B46FB008F8056 /* SignUpView.swift in Sources */,
+				12050FF52D168059001AEF27 /* NFCBusinessCardSharingViewModel.swift in Sources */,
 				530EE0E72B8B05A600B2F5BB /* CustomModifiers.swift in Sources */,
 				530EE0CA2B8B00EC00B2F5BB /* SceneDelegate.swift in Sources */,
 				530EE0D82B8B043B00B2F5BB /* ImageLoader.swift in Sources */,
@@ -800,10 +822,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_ENTITLEMENTS = iOSApp/iOSApp.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"iOSApp/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = KPF2N84V82;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOSApp/Info.plist;
@@ -837,10 +861,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_ENTITLEMENTS = iOSApp/iOSApp.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"iOSApp/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = KPF2N84V82;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOSApp/Info.plist;

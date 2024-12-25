@@ -2,6 +2,7 @@ import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
 
+
 struct EditCards: View {
     @State private var isDetailViewActive = false
     @State private var isSaveButtonTapped = false
@@ -15,6 +16,7 @@ struct EditCards: View {
     
     @State private var profession: String = ""
     @State private var role: String = ""
+    @State private var uid: String = ""
     
     @State private var company: String = ""
     @State private var whatsapp: String = ""
@@ -25,6 +27,17 @@ struct EditCards: View {
     @State private var website: String = ""
     @State private var latitude: Double = 0.0
     @State private var longitude: Double = 0.0
+    @State private var selectedCardColor = Color.blue
+    // Color options
+    let cardColors: [Color] = [
+           .blue,
+           .green,
+           .purple,
+           .red,
+           .orange,
+           .teal,
+           .indigo
+       ]
     
     let categoryIcons: [String: String] = [
         "Tech": "desktopcomputer",
@@ -185,15 +198,17 @@ struct EditCards: View {
 //        "Others": []
     ]
     
+    
     let db = Firestore.firestore()
 
     var body: some View {
-        NavigationView {
+       
             ScrollView {
                     VStack(spacing:0) {
                         VStack{
+                            Spacer()
                             if let businessCard = userDataViewModel.businessCard {
-                                CustomCardViewPreview(businessCard: businessCard)
+                                CustomCardViewPreview(businessCard: businessCard, cardColor: UIColor(selectedCardColor))
                                     .padding()
                                     .padding(.top)
                                     .padding(.top)
@@ -215,6 +230,35 @@ struct EditCards: View {
                             Spacer()
                             Spacer()
                         }
+                        // Add color selection section
+                                            VStack {
+                                                HStack {
+                                                    Text("Card Color")
+                                                        .font(.title2)
+                                                        .padding()
+                                                        .padding(.horizontal)
+                                                    Spacer()
+                                                }
+                                                
+                                                ScrollView(.horizontal, showsIndicators: false) {
+                                                    HStack(spacing: 10) {
+                                                        ForEach(cardColors, id: \.self) { color in
+                                                            Button(action: {
+                                                                selectedCardColor = color
+                                                            }) {
+                                                                Circle()
+                                                                    .fill(color)
+                                                                    .frame(width: 50, height: 50)
+                                                                    .overlay(
+                                                                        Circle()
+                                                                            .stroke(selectedCardColor == color ? Color.black : Color.clear, lineWidth: 2)
+                                                                    )
+                                                            }
+                                                        }
+                                                    }
+                                                    .padding()
+                                                }
+                                            }
                         VStack(spacing:0){
                             
                             VStack{
@@ -256,7 +300,7 @@ struct EditCards: View {
 //                                    .padding(.horizontal)
                                 // Profession Selection
 //                                ScrollableCategory(title: "Profession", options: professions, selectedOption: $profession)
-//                                                       
+//
 //                                                       // Role Selection
 //                                ScrollableCategory(title: "Role", options: roles, selectedOption: $role)
                                 
@@ -290,7 +334,7 @@ struct EditCards: View {
 //                                RoundedTextField(label: "Whatsapp Number", text: $whatsapp)
 //                                    .frame(height: 90)
 //                                    .padding(.horizontal)
-//                                
+//
 //                                RoundedTextField(label: "Work Address", text: $address)
 //                                    .frame(height: 90)
 //                                    .padding(.horizontal)
@@ -352,12 +396,13 @@ struct EditCards: View {
                     }.navigationTitle("Edit Cards")
                         
                 }
-            }
+            
             .onAppear {
                 if let userID = Auth.auth().currentUser?.uid {
                     db.collection("UserDatabase").document(userID).getDocument { (document, error) in
                         if let document = document, document.exists {
                             if let data = document.data() {
+                                uid = data["uid"] as? String ?? userID  // Use the saved UID or current user ID
                                 name = data["name"] as? String ?? ""
                                 email = data["email"] as? String ?? ""
                                 phoneNumber = data["phoneNumber"] as? String ?? ""
@@ -373,21 +418,28 @@ struct EditCards: View {
                                 website = data["website"] as? String ?? ""
                                 latitude = data["latitude"] as? Double ?? 0.0
                                 longitude = data["longitude"] as? Double ?? 0.0
+                                // Load card color
+                                if let colorHex = data["cardColor"] as? String {
+                                    selectedCardColor = Color(hex: colorHex) ?? .blue
+                                }
                             }
                         } else {
                             print("User document not found: \(error?.localizedDescription ?? "Unknown error")")
                         }
                     }
+                }
             }
-        }
+        
     }
 
-    private func saveUserData() {
+    
 
+    private func saveUserData() {
         showAlert = true
 
         if let userID = Auth.auth().currentUser?.uid {
             db.collection("UserDatabase").document(userID).setData([
+                "uid": userID,  // Explicitly add the uid field
                 "name": name,
                 "profession": profession,
                 "email": email,
@@ -402,7 +454,8 @@ struct EditCards: View {
                 "instagram": instagram,
                 "xHandle": xHandle,
                 "latitude": latitude,
-                "longitude": longitude
+                "longitude": longitude,
+                "cardColor": selectedCardColor.toHexString()
             ]) { error in
                 if let error = error {
                     print("Error updating document: \(error.localizedDescription)")
@@ -413,7 +466,46 @@ struct EditCards: View {
         }
     }
 }
+// Extension to convert Color to Hex String
+extension Color {
+    func toHexString() -> String {
+        let uiColor = UIColor(self)
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        
+        uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        
+        let hexString = String(format: "#%02X%02X%02X", Int(red * 255), Int(green * 255), Int(blue * 255))
+        return hexString
+    }
+}
+// Add a Color extension to convert hex to Color
+extension Color {
+    init?(hex: String) {
+        let r, g, b: CGFloat
+        if hex.hasPrefix("#") {
+            let start = hex.index(hex.startIndex, offsetBy: 1)
+            let hexColor = String(hex[start...])
 
+            if hexColor.count == 6 {
+                let scanner = Scanner(string: hexColor)
+                var hexNumber: UInt64 = 0
+
+                if scanner.scanHexInt64(&hexNumber) {
+                    r = CGFloat((hexNumber & 0xff0000) >> 16) / 255
+                    g = CGFloat((hexNumber & 0x00ff00) >> 8) / 255
+                    b = CGFloat(hexNumber & 0x0000ff) / 255
+
+                    self.init(red: r, green: g, blue: b)
+                    return
+                }
+            }
+        }
+        return nil
+    }
+}
 struct RoundedTextField: View {
     var label: String
     @Binding var text: String
@@ -443,9 +535,12 @@ struct ScrollableCategory: View {
     
     var body: some View {
         VStack(alignment: .leading) {
-            Text(title)
-//                .font(.headline)
-                .padding(.horizontal)
+            Text("Role")
+                .font(.subheadline)
+                .foregroundColor(Color.gray)
+                .padding(.bottom, 1)
+                .padding(.top, 5)
+                .padding(.leading, 25)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
@@ -465,7 +560,7 @@ struct ScrollableCategory: View {
                 }
                 .padding(.horizontal)
             }
-        }
+        }.padding(.horizontal)
     }
 }
 
@@ -477,11 +572,14 @@ struct CategorySelector: View {
     var body: some View {
         VStack(alignment: .leading) {
             Text("Profession")
-//                .font(.headline)
-//                .padding(.bottom, 5)
+                .font(.subheadline)
+                .foregroundColor(Color.gray)
+                .padding(.bottom, 1)
+                .padding(.top, 5)
+                .padding(.leading, 25)
             
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 15) {
+                HStack(spacing: 10) {
                     ForEach(categories.keys.sorted(), id: \.self) { category in
                         Button(action: {
                             selectedCategory = category
@@ -496,12 +594,12 @@ struct CategorySelector: View {
                                     .font(.caption)
                                     .foregroundColor(.black)
                             }
-                        }
+                        }.padding(.horizontal, 5)
                     }
-                }
+                }.padding(.horizontal)
             }
         }
-        .padding()
+        .padding(.horizontal)
     }
 }
 struct EditCards_Previews: PreviewProvider {

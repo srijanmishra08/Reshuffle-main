@@ -31,7 +31,9 @@ struct ReShuffleQRWidgetProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<SimpleEntry>) -> ()) {
         let currentDate = Date()
-        let entry = SimpleEntry(date: currentDate, qrCodeData: loadQRCodeData())
+        let qrCodeData = loadQRCodeData()
+        
+        let entry = SimpleEntry(date: currentDate, qrCodeData: qrCodeData)
         
         // Refresh every hour
         let nextUpdate = Calendar.current.date(byAdding: .hour, value: 1, to: currentDate)!
@@ -41,29 +43,32 @@ struct ReShuffleQRWidgetProvider: TimelineProvider {
     
     private func loadQRCodeData() -> String {
         // Fetch the QR code data from UserDefaults
-        return UserDefaults.standard.string(forKey: "QRCodeData") ?? "Your QR Code Data"
+        guard let qrCodeData = UserDefaults.standard.string(forKey: "QRCodeData") else {
+            return "No QR Code Available" // Or any default text you prefer
+        }
+        return qrCodeData
     }
 }
 
 // Widget Configuration
-//@main
-//struct ReShuffleQRWidget: Widget {
-//    let kind: String = "ReShuffleQRWidget"
-//
-//    var body: some WidgetConfiguration {
-//        StaticConfiguration(kind: kind, provider: ReShuffleQRWidgetProvider()) { entry in
-//            ReShuffleQRWidgetEntryView(entry: entry)
-//        }
-//        .configurationDisplayName("ReShuffle QR Widget")
-//        .description("Display your ReShuffle QR code.")
-//        .supportedFamilies([.systemSmall])
-//    }
-//}
-//
-//// Preview for the widget
-//struct ReShuffleQRWidget_Previews: PreviewProvider {
-//    static var previews: some View {
-//        ReShuffleQRWidgetEntryView(entry: SimpleEntry(date: Date(), qrCodeData: "Sample QR Code Data"))
-//            .previewContext(WidgetPreviewContext(family: .systemSmall))
-//    }
-//}
+@main
+struct ReShuffleQRWidget: Widget {
+    let kind: String = "ReShuffleQRWidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: ReShuffleQRWidgetProvider()) { entry in
+            ReShuffleQRWidgetEntryView(entry: entry)
+        }
+        .configurationDisplayName("ReShuffle QR Widget")
+        .description("Display your ReShuffle QR code.")
+        .supportedFamilies([.systemSmall])
+    }
+}
+
+// Preview for the widget
+struct ReShuffleQRWidget_Previews: PreviewProvider {
+    static var previews: some View {
+        ReShuffleQRWidgetEntryView(entry: SimpleEntry(date: Date(), qrCodeData: "Sample QR Code Data"))
+            .previewContext(WidgetPreviewContext(family: .systemSmall))
+    }
+}

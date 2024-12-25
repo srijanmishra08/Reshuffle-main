@@ -47,6 +47,8 @@ struct BusinessCard{
     var xHandle: String
     var region: MKCoordinateRegion
     var trackingMode: MapUserTrackingMode
+    var cardColor: UIColor = UIColor(red: 36/255.0, green: 143/255.0, blue: 152/255.0, alpha: 1.0)
+    
 }
 struct Onboarding: View {
     @ObservedObject var userData: UserData
@@ -239,6 +241,9 @@ struct SecondView: View {
     }
 }
 
+import SwiftUI
+import MapKit
+
 struct OfficeLocationView: View {
     struct MapPinItem: Identifiable {
         let id = UUID()
@@ -246,86 +251,49 @@ struct OfficeLocationView: View {
     }
     
     @State private var searchQuery: String = ""
-    @State private var searchCompleter = MKLocalSearchCompleter()
     @State private var searchResults: [MKLocalSearchCompletion] = []
     @State private var selectedCoordinate: CLLocationCoordinate2D?
     @State private var mapRegion: MKCoordinateRegion?
     @Binding var user: BusinessCard
-    var name: String
     @Environment(\.presentationMode) var presentationMode
-    @State private var locationManager = CLLocationManager()
+    private let locationManager = CLLocationManager()
+    private let searchCompleter = MKLocalSearchCompleter()
     
     var body: some View {
         NavigationView {
             VStack {
                 Spacer()
-                
-
                 Text("Working Location")
                     .font(.largeTitle)
                     .fontWeight(.bold)
                     .padding()
-                
                 
                 // Search Bar
                 TextField("Search for a location", text: $searchQuery)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
                     .onChange(of: searchQuery) { newValue in
-                        searchCompleter.queryFragment = newValue
+                        searchLocation()
                     }
-                
-                // Search Results
-                List(searchResults, id: \.description) { result in
-                    Text(result.title)
-                        .onTapGesture {
-                            selectLocation(result)
-                        }
-                }
-                .listStyle(InsetGroupedListStyle())
-                .frame(height: 30)
                 
                 // Map View
-                Map(coordinateRegion: Binding(
-                                        get: { mapRegion ?? MKCoordinateRegion(center: CLLocationCoordinate2D(), span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)) },
-                                        set: { mapRegion = $0 }
-                                    ),
-                                    annotationItems: selectedCoordinate.map { [MapPinItem(coordinate: $0)] } ?? []
-                                ) { item in
-                                    MapPin(coordinate: item.coordinate, tint: .red)
-                                }
-                                .frame(height: 400)
-                                .padding(.horizontal,30)
-                .onAppear {
-                    locationManager.requestWhenInUseAuthorization()
-                    locationManager.startUpdatingLocation()
+                Map(
+                    coordinateRegion: Binding(
+                        get: { mapRegion ?? defaultRegion() },
+                        set: { mapRegion = $0 }
+                    ),
+                    annotationItems: selectedCoordinate.map { [MapPinItem(coordinate: $0)] } ?? []
+                ) { item in
+                    MapPin(coordinate: item.coordinate, tint: .red)
                 }
-                .gesture(DragGesture().onChanged { value in
-                    let location = value.location
-                    let coordinate = mapRegion?.center ?? CLLocationCoordinate2D()
-                    selectedCoordinate = coordinate
-                })
-                .onChange(of: selectedCoordinate) { newCoordinate in
-                    if let newCoordinate = newCoordinate {
-                        mapRegion = MKCoordinateRegion(
-                            center: newCoordinate,
-                            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-                        )
-                        user.region = MKCoordinateRegion(
-                            center: newCoordinate,
-                            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-                        )
-                    }
-                }
-
-                Button(action: {
-                    presentationMode.wrappedValue.dismiss()
-                }) {
-                    NavigationLink(destination: FinalOnboardingView(user: $user)
-                        .navigationBarBackButtonHidden(true)) {
-                            Text("Next")
-                                .padding(.top)
-                        }
+                .frame(height: 400)
+                .padding(.horizontal)
+                .onAppear(perform: setupLocationManager)
+                
+                // Next Button
+                NavigationLink(destination: FinalOnboardingView(user: $user).navigationBarBackButtonHidden(true)) {
+                    Text("Next")
+                        .padding()
                 }
                 
                 Spacer()
@@ -333,65 +301,62 @@ struct OfficeLocationView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 200, height: 80)
-                    .foregroundColor(.green)
                     .padding()
             }
             .onAppear {
-                searchCompleter.delegate = makeCoordinator()
-                
-                if let location = locationManager.location {
-                    let initialRegion = MKCoordinateRegion(
-                        center: location.coordinate,
-                        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-                    )
-                    mapRegion = initialRegion
-                    selectedCoordinate = location.coordinate
-                    user.region = initialRegion
-                }
+                initializeLocation()
             }
         }
     }
     
-    private func selectLocation(_ completion: MKLocalSearchCompletion) {
-        let searchRequest = MKLocalSearch.Request(completion: completion)
+    // MARK: - Private Methods
+    
+    private func setupLocationManager() {
+        locationManager.requestWhenInUseAuthorization()
+        if locationManager.authorizationStatus == .authorizedWhenInUse || locationManager.authorizationStatus == .authorizedAlways {
+            if let currentLocation = locationManager.location?.coordinate {
+                setMapRegion(to: currentLocation)
+            }
+        }
+    }
+    
+    private func initializeLocation() {
+        if let currentLocation = locationManager.location?.coordinate {
+            setMapRegion(to: currentLocation)
+        }
+    }
+    
+    private func searchLocation() {
+        guard !searchQuery.isEmpty else { return }
+        let searchRequest = MKLocalSearch.Request()
+        searchRequest.naturalLanguageQuery = searchQuery
+        
         let search = MKLocalSearch(request: searchRequest)
         search.start { response, error in
-            guard let response = response, let mapItem = response.mapItems.first else {
-                return
-            }
-            
-            self.selectedCoordinate = mapItem.placemark.coordinate
-            self.searchResults = []
-            
-            if let newCoordinate = self.selectedCoordinate {
-                self.mapRegion = MKCoordinateRegion(
-                    center: newCoordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-                )
-                self.user.region = MKCoordinateRegion(
-                    center: newCoordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
-                )
-            }
-        }
-    }
-
-    class Coordinator: NSObject, MKLocalSearchCompleterDelegate {
-        var parent: OfficeLocationView
-
-        init(parent: OfficeLocationView) {
-            self.parent = parent
-        }
-
-        func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
-            parent.searchResults = completer.results
+            guard let response = response, let mapItem = response.mapItems.first else { return }
+            let coordinate = mapItem.placemark.coordinate
+            setMapRegion(to: coordinate)
         }
     }
     
-    func makeCoordinator() -> Coordinator {
-        return Coordinator(parent: self)
+    private func setMapRegion(to coordinate: CLLocationCoordinate2D) {
+        let region = MKCoordinateRegion(
+            center: coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+        )
+        mapRegion = region
+        selectedCoordinate = coordinate
+        user.region = region
+    }
+    
+    private func defaultRegion() -> MKCoordinateRegion {
+        MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194), // Default location (San Francisco)
+            span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+        )
     }
 }
+
 struct SeventhView: View {
     @State private var desc: String = ""
     @State private var company: String = ""
@@ -425,7 +390,7 @@ struct SeventhView: View {
             VStack {
                 HStack {
                     Spacer()
-                    NavigationLink(destination: OfficeLocationView(user: $user, name: name).navigationBarBackButtonHidden(true)) {
+                    NavigationLink(destination: OfficeLocationView(user: $user).navigationBarBackButtonHidden(true)) {
                         Text("Skip")
                             .foregroundColor(Color.gray)
                             .padding(.trailing)
@@ -496,7 +461,7 @@ struct SeventhView: View {
                     user.instagram = instagram
                     user.xHandle = xHandle
                 }) {
-                    NavigationLink(destination: OfficeLocationView(user: $user, name: name).navigationBarBackButtonHidden(true)) {
+                    NavigationLink(destination: OfficeLocationView(user: $user).navigationBarBackButtonHidden(true)) {
                         Text("Next")
                             .padding(.top)
                     }
@@ -637,7 +602,7 @@ struct FinalOnboardingView: View {
                     EditCardsPreviewCard(user: $user)
                 }
 
-                NavigationLink(destination: FirstPage().navigationBarBackButtonHidden(true)) {
+                NavigationLink(destination: FirstPage().navigationBarBackButtonHidden(true), isActive: $navigateToFirstPage) {
                     Button(action: {
                         if let userId = Auth.auth().currentUser?.uid {
                             userData = [
