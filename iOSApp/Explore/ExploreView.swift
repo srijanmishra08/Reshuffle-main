@@ -26,15 +26,16 @@ class ExploreViewModel: ObservableObject {
     @Published var searchText = ""
     @Published var selectedCategory: String? = nil
     @Published var showCategoryPopup = false
+    
+    private var listener: ListenerRegistration?
+    private let db = Firestore.firestore()
 
-    // Filter userCards based on searchText and selectedCategory
     var filteredUserCards: [UserCard] {
         userCards.filter { card in
             let matchesSearchText = searchText.isEmpty || card.name.localizedCaseInsensitiveContains(searchText) ||
                                     card.role.localizedCaseInsensitiveContains(searchText) ||
                                     card.company.localizedCaseInsensitiveContains(searchText)
             
-            // Matches category, accounting for "All Cards" to show all
             let matchesCategory = selectedCategory == nil || selectedCategory == "All Cards" || card.category == selectedCategory
             
             return matchesSearchText && matchesCategory
@@ -42,78 +43,85 @@ class ExploreViewModel: ObservableObject {
     }
     
     init() {
-        fetchUserCards() // Fetch Firebase data when ViewModel is initialized
+        setupRealtimeListener()
+    }
+    
+    deinit {
+        // Remove listener when ViewModel is deallocated
+        listener?.remove()
     }
 
     func selectCategory(_ category: String?) {
-        // Set selectedCategory to nil for "All Cards" to display all items
         selectedCategory = (category == "All Cards") ? nil : category
     }
-    private let db = Firestore.firestore()
+
     func saveUserCard(for uid: String) {
-            guard let currentUserUID = Auth.auth().currentUser?.uid else {
-                print("User not authenticated")
+        guard let currentUserUID = Auth.auth().currentUser?.uid else {
+            print("User not authenticated")
+            return
+        }
+    
+        let currentUserRef = db.collection("SavedUsers").document(currentUserUID)
+
+        currentUserRef.getDocument { document, error in
+            if let error = error {
+                print("Error fetching document: \(error.localizedDescription)")
                 return
             }
-        
-            let currentUserRef = db.collection("SavedUsers").document(currentUserUID)
 
-            currentUserRef.getDocument { document, error in
-                if let error = error {
-                    print("Error fetching document: \(error.localizedDescription)")
-                    return
-                }
-
-                var scannedUIDs = [String]()
-                if let document = document, document.exists {
-                    if let data = document.data(), let existingUIDs = data["scannedUIDs"] as? [String] {
-                        scannedUIDs = existingUIDs
-                    }
-                }
-
-                if !scannedUIDs.contains(uid) {
-                    scannedUIDs.append(uid)
-                    currentUserRef.setData(["scannedUIDs": scannedUIDs], merge: true) { error in
-                        if let error = error {
-                            print("Error saving card: \(error.localizedDescription)")
-                        } else {
-                            print("Card saved successfully")
-                        }
-                    }
-                } else {
-                    print("Card already saved")
+            var scannedUIDs = [String]()
+            if let document = document, document.exists {
+                if let data = document.data(), let existingUIDs = data["scannedUIDs"] as? [String] {
+                    scannedUIDs = existingUIDs
                 }
             }
-        }
 
-    func fetchUserCards() {
-        let db = Firestore.firestore()
+            if !scannedUIDs.contains(uid) {
+                scannedUIDs.append(uid)
+                currentUserRef.setData(["scannedUIDs": scannedUIDs], merge: true) { error in
+                    if let error = error {
+                        print("Error saving card: \(error.localizedDescription)")
+                    } else {
+                        print("Card saved successfully")
+                    }
+                }
+            } else {
+                print("Card already saved")
+            }
+        }
+    }
+
+    private func setupRealtimeListener() {
+        // Remove any existing listener
+        listener?.remove()
         
-        db.collection("UserDatabase").getDocuments { snapshot, error in
+        // Set up real-time listener for UserDatabase collection
+        listener = db.collection("UserDatabase").addSnapshotListener { [weak self] snapshot, error in
+            guard let self = self else { return }
+            
             if let error = error {
-                print("Error fetching user cards: \(error.localizedDescription)")
+                print("Error setting up real-time listener: \(error.localizedDescription)")
                 return
             }
             
             guard let documents = snapshot?.documents else { return }
-
-            self.userCards.removeAll()
-
-            for document in documents {
+            
+            // Create a new array of UserCard objects
+            let updatedCards = documents.compactMap { document -> UserCard? in
                 let data = document.data()
                 
                 guard let name = data["name"] as? String,
                       let uid = data["uid"] as? String,
-                      let profession = data["profession"]as? String,
+                      let profession = data["profession"] as? String,
                       let role = data["role"] as? String,
                       let company = data["company"] as? String else {
                     print("Missing or invalid data for user with ID: \(document.documentID)")
-                    continue
+                    return nil
                 }
-                // Fetch custom card color if available, otherwise use nil
-                                let cardColor = data["cardColor"] as? String
                 
-                // Determine category based on profession with added roles
+                let cardColor = data["cardColor"] as? String
+                
+                // Determine category based on role
                 let category: String
                 switch role.lowercased() {
                     case "product manager", "software engineer", "developer", "sde", "data scientist", "network administrator", "web developer", "lead ios developer", "ios developer", "ux/ui designer", "database administrator", "devops engineer", "it consultant", "system analyst", "cybersecurity analyst", "mobile app developer", "ai/machine learning engineer", "game developer", "qa tester", "cloud solutions architect", "tech support specialist", "technical writer", "embedded systems engineer", "network engineer", "full stack developer", "tester":
@@ -122,7 +130,7 @@ class ExploreViewModel: ObservableObject {
                         category = "Doctor"
                     case "student", "teacher", "professor":
                         category = "Education"
-                    case "plumber", "electrician", "hvac technician", "carpenter", "mechanic", "locksmith", "landscaper"/*, "painter"*/, "pool cleaner", "appliance repair technician", "roofing contractor", "pest control technician", "septic tank services", "glass installer", "welder", "solar panel installer", "elevator mechanic", "building inspector", "fire alarm technician", "masonry worker":
+                    case "plumber", "electrician", "hvac technician", "carpenter", "mechanic", "locksmith", "landscaper", "pool cleaner", "appliance repair technician", "roofing contractor", "pest control technician", "septic tank services", "glass installer", "welder", "solar panel installer", "elevator mechanic", "building inspector", "fire alarm technician", "masonry worker":
                         category = "Utility"
                     case "actor", "musician", "video game developer", "film director", "cinematographer", "sound engineer", "choreographer", "costume designer", "makeup artist", "stunt performer", "film editor", "set designer", "casting director", "storyboard artist", "location manager", "voice actor", "script supervisor", "film producer", "entertainment lawyer", "talent agent":
                         category = "Entertainment"
@@ -134,23 +142,24 @@ class ExploreViewModel: ObservableObject {
                         category = "Others"
                 }
                 
-                let userCard = UserCard(
-                                    id: document.documentID,
-                                    uid: uid,
-                                    name: name,
-                                    role: role, profession: profession,
-                                    company: company,
-                                    category: category,
-                                    cardColor: cardColor
-                                )
-
-                DispatchQueue.main.async {
-                    self.userCards.append(userCard)
-                }
+                return UserCard(
+                    id: document.documentID,
+                    uid: uid,
+                    name: name,
+                    role: role,
+                    profession: profession,
+                    company: company,
+                    category: category,
+                    cardColor: cardColor
+                )
+            }
+            
+            // Update userCards on the main thread
+            DispatchQueue.main.async {
+                self.userCards = updatedCards
             }
         }
     }
-
 }
 
 // MARK: - View
@@ -361,6 +370,7 @@ struct CategoryPopupView: View {
 struct UserCardView: View {
     let card: UserCard
     @ObservedObject var viewModel: ExploreViewModel
+    @State private var showAlert = false
     
     // Helper function to convert color string to Color
     func parseColor(_ colorString: String?) -> Color {
@@ -440,6 +450,7 @@ struct UserCardView: View {
                 VStack {
                     Button(action: {
                         viewModel.saveUserCard(for: card.uid)
+                        showAlert = true
                     }) {
                         Image(systemName: "bookmark")
                             .font(.system(size: 20, weight: .medium))
@@ -449,6 +460,8 @@ struct UserCardView: View {
                                 Circle()
                                     .fill(Color.white.opacity(0.2))
                             )
+                    }.alert(isPresented: $showAlert) {
+                        Alert(title: Text("Success"), message: Text("Card Successfully Saved"), dismissButton: .default(Text("OK")))
                     }
                     .padding(.top, 20)
                     .padding(.trailing, 20)

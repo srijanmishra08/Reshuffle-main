@@ -115,6 +115,7 @@ struct CustomAnnotationView: View {
     @State private var isUIDPresent: Bool = false
     @State private var showAlert = false
     @State private var showDetails = false
+    @State private var cardColor: Color = .black // Add state for card color
     private let db = Firestore.firestore()
 
     var body: some View {
@@ -163,7 +164,7 @@ struct CustomAnnotationView: View {
             }
 
             Image(systemName: "rectangle.fill")
-                .foregroundColor(.black)
+                .foregroundColor(cardColor) // Use the dynamic card color
                 .frame(width: 80, height: 120)
                 .onTapGesture {
                     withAnimation {
@@ -174,13 +175,37 @@ struct CustomAnnotationView: View {
         }
         .onAppear {
             checkUIDPresence(viewedUID: viewedUserUID)
+            setupColorListener() // Add real-time color listener
         }
         .alert(isPresented: $showAlert) {
             Alert(title: Text("Success"), message: Text("Card Successfully Saved"), dismissButton: .default(Text("OK")))
         }
     }
 
-
+    // Add function to set up real-time color listener
+    private func setupColorListener() {
+        guard let uid = viewedUserUID else { return }
+        
+        let userRef = db.collection("UserDatabase").document(uid)
+        userRef.addSnapshotListener { documentSnapshot, error in
+            guard let document = documentSnapshot else {
+                print("Error fetching document: \(error?.localizedDescription ?? "Unknown error")")
+                return
+            }
+            
+            if let colorString = document.data()?["cardColor"] as? String {
+                switch colorString {
+                case "black": cardColor = .black
+                case "blue": cardColor = .blue
+                case "red": cardColor = .red
+                case "green": cardColor = .green
+                case "purple": cardColor = .purple
+                case "orange": cardColor = .orange
+                default: cardColor = .black
+                }
+            }
+        }
+    }
 
     private func checkUIDPresence(viewedUID: String?) {
         guard let currentUserUID = Auth.auth().currentUser?.uid else {
@@ -189,7 +214,6 @@ struct CustomAnnotationView: View {
         }
 
         let currentUserRef = db.collection("SavedUsers").document(currentUserUID)
-
 
         currentUserRef.getDocument { document, error in
             if let error = error {
@@ -208,9 +232,6 @@ struct CustomAnnotationView: View {
         }
     }
 }
-
-
-
 
 
 struct NextView: View {

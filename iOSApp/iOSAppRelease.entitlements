@@ -8,7 +8,7 @@
     <key>com.apple.developer.nfc.readersession.formats</key>
     <array>
         <string>TAG</string>
-       <!-- Add this if reading NFC tags -->
+        <!-- Add this if reading NFC tags -->
       <!-- Add this for NFC smart cards -->
     </array>
 

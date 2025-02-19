@@ -5,59 +5,58 @@ import FirebaseFirestore
 import CoreLocation
 
 struct CardListView: View {
-    
     @State private var searchCards: String = ""
-        @State private var contacts: [Contact] = []
-        
-        var body: some View {
-//            NavigationStack {
-                VStack(spacing: 0) {
-                    // Improved Search Bar
-                          VStack {
-                              HStack {
-                                  Image(systemName: "magnifyingglass")
-                                      .foregroundColor(.secondary)
-                                      .padding(.leading)
-                                  
-                                  TextField("Search contacts", text: $searchCards)
-                                      .foregroundColor(.primary)
-                                      .accentColor(.blue)
-                                      .placeholder(when: searchCards.isEmpty) {
-                                          Text("Search contacts")
-                                              .foregroundColor(.secondary)
-                                      }
-                              }
-                              .padding()
-                              .background(Color(uiColor: .secondarySystemBackground))
-                              .cornerRadius(12)
-                              .overlay(
-                                  RoundedRectangle(cornerRadius: 12)
-                                      .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
-                              )
-                              .padding(.horizontal)
-                          }
-                          .padding(.top)
-                          
-                          // Contacts List
-                          ScrollView {
-                              LazyVStack(spacing: 12) {
-                                  ForEach(filteredContacts) { contact in
-                                      ContactCard(contact: contact)
-                                          .transition(.asymmetric(insertion: .scale.combined(with: .opacity),
-                                                                removal: .scale.combined(with: .opacity)))
-                                  }
-                              }
-                              .padding()
-                          }
-                      }
-                      .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
-                      .navigationBarTitle("My Contacts")
-                      .onAppear {
-                          fetchData()
-                      }
-                  }
-        
-
+    @State private var contacts: [Contact] = []
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Improved Search Bar
+            VStack {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.secondary)
+                        .padding(.leading)
+                    
+                    TextField("Search contacts", text: $searchCards)
+                        .foregroundColor(.primary)
+                        .accentColor(.blue)
+//                        .placeholder(when: searchCards.isEmpty) {
+//                            Text("Search contacts")
+//                                .foregroundColor(.secondary)
+//                        }
+                }
+                .padding()
+                .background(Color(uiColor: .secondarySystemBackground))
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                )
+                .padding(.horizontal)
+            }
+            .padding(.top)
+            
+            // Contacts List
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(filteredContacts) { contact in
+                        ContactCard(contact: contact, onDelete: { deletedContact in
+                            deleteContact(deletedContact)
+                        })
+                        .transition(.asymmetric(insertion: .scale.combined(with: .opacity),
+                                              removal: .scale.combined(with: .opacity)))
+                    }
+                }
+                .padding()
+            }
+        }
+        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
+        .navigationBarTitle("My Contacts")
+        .onAppear {
+            fetchData()
+        }
+    }
+    
     var filteredContacts: [Contact] {
         if searchCards.isEmpty {
             return contacts
@@ -66,36 +65,72 @@ struct CardListView: View {
         }
     }
     
-    func fetchData() {
-            guard let currentUserUID = Auth.auth().currentUser?.uid else {
-                return
-            }
-
-            let savedUsersRef = Firestore.firestore().collection("SavedUsers").document(currentUserUID)
-
-            savedUsersRef.getDocument { (document, error) in
-                if let document = document, document.exists {
-                    if let scannedUIDs = document.data()?["scannedUIDs"] as? [String] {
-                        for scannedUID in scannedUIDs {
-                            fetchUserDetails(for: scannedUID)
+    func deleteContact(_ contact: Contact) {
+        guard let currentUserUID = Auth.auth().currentUser?.uid else { return }
+        
+        let savedUsersRef = Firestore.firestore().collection("SavedUsers").document(currentUserUID)
+        
+        // Remove the contact from Firestore
+        savedUsersRef.getDocument { (document, error) in
+            if let document = document, document.exists {
+                if var scannedUIDs = document.data()?["scannedUIDs"] as? [String] {
+                    scannedUIDs.removeAll { $0 == contact.uid }
+                    
+                    // Update Firestore
+                    savedUsersRef.updateData([
+                        "scannedUIDs": scannedUIDs
+                    ]) { error in
+                        if let error = error {
+                            print("Error updating document: \(error)")
+                        } else {
+                            // Remove contact from local array
+                            DispatchQueue.main.async {
+                                contacts.removeAll { $0.uid == contact.uid }
+                            }
                         }
                     }
-                } else {
-                    print("Error fetching SavedUsers document: \(error?.localizedDescription ?? "")")
                 }
             }
         }
-
+    }
+    
+    func fetchData() {
+        contacts.removeAll()
+        
+        guard let currentUserUID = Auth.auth().currentUser?.uid else {
+            return
+        }
+        
+        let savedUsersRef = Firestore.firestore().collection("SavedUsers").document(currentUserUID)
+        
+        savedUsersRef.getDocument { (document, error) in
+            if let document = document, document.exists {
+                if let scannedUIDs = document.data()?["scannedUIDs"] as? [String] {
+                    var processedUIDs = Set<String>()
+                    
+                    for scannedUID in scannedUIDs {
+                        if !processedUIDs.contains(scannedUID) {
+                            processedUIDs.insert(scannedUID)
+                            fetchUserDetails(for: scannedUID)
+                        }
+                    }
+                }
+            } else {
+                print("Error fetching SavedUsers document: \(error?.localizedDescription ?? "")")
+            }
+        }
+    }
+    
     func fetchUserDetails(for uid: String) {
         let userDatabaseRef = Firestore.firestore().collection("UserDatabase").document(uid)
-
+        
         userDatabaseRef.getDocument { (document, error) in
             if let document = document, document.exists {
                 let data = document.data() ?? [:]
                 let contact = Contact(
                     uid: uid,
                     firstName: data["name"] as? String ?? "Unknown",
-                    lastName: "",  // Set default or remove if unnecessary
+                    lastName: "",
                     designation: data["profession"] as? String ?? "Unknown",
                     company: data["company"] as? String ?? "Unknown",
                     coordinate: CLLocationCoordinate2D(),
@@ -110,35 +145,20 @@ struct CardListView: View {
                     instagram: data["instagram"] as? String ?? "",
                     xHandle: data["xHandle"] as? String ?? ""
                 )
-
-                // Add contact to the list without requiring all fields
-                self.contacts.append(contact)
-                print(contacts)
-            } else {
-                print("Error fetching UserDatabase document for UID \(uid): \(error?.localizedDescription ?? "")")
+                
+                DispatchQueue.main.async {
+                    if !self.contacts.contains(where: { $0.uid == contact.uid }) {
+                        self.contacts.append(contact)
+                    }
+                }
             }
         }
     }
-
-}
-extension View {
-    func placeholder<Content: View>(
-        when shouldShow: Bool,
-        alignment: Alignment = .leading,
-        @ViewBuilder then: () -> Content
-    ) -> some View {
-        ZStack(alignment: alignment) {
-            then()
-                .opacity(shouldShow ? 1 : 0)
-            
-            self
-        }
-    }
 }
 
-// Update ContactCard to use system colors
 struct ContactCard: View {
     let contact: Contact
+    let onDelete: (Contact) -> Void
     @State private var showDetails = false
     
     var body: some View {
@@ -170,48 +190,20 @@ struct ContactCard: View {
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showDetails) {
-            DetailsPopupView(contact: contact)
+            DetailsPopupView(contact: contact, onDelete: {
+                showDetails = false
+                onDelete(contact)
+            })
         }
     }
 }
-//
-//struct CardListItemView: View {
-//    let contact: Contact
-//    @State private var showDetails = false
-////    @Environment(\.presentationMode) var presentationMode
-//
-//
-//    var body: some View {
-//        Button(action: {
-//            self.showDetails.toggle()
-//        }) {
-//            HStack {
-//                Image(systemName: "person.circle.fill")
-//                    .resizable()
-//                    .frame(width: 40, height: 40)
-//                    .foregroundColor(.black)
-//                    .padding(.trailing, 8)
-//
-//                VStack(alignment: .leading) {
-//                    Text("\(contact.firstName)")
-//                        .font(.headline)
-//                    Text("\(contact.designation), \(contact.company)")
-//                        .font(.subheadline)
-//                        .foregroundColor(.gray)
-//                }
-//            }
-//            .padding(8)
-//        }
-//        .sheet(isPresented: $showDetails) {
-//            DetailsPopupView(contact: contact)
-//        }
-//    }
-//}
 
 struct DetailsPopupView: View {
     let contact: Contact
+    let onDelete: () -> Void
     @State private var userData: UserDataBusinessCard?
     @State private var isFetchingData = false
+    @State private var showDeleteAlert = false
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -220,18 +212,32 @@ struct DetailsPopupView: View {
                 if let userData = userData {
                     BusinessCardSaved(userData: Binding.constant(userData))
                         .transition(.asymmetric(insertion: .scale.combined(with: .opacity),
-                                                removal: .scale.combined(with: .opacity)))
+                                              removal: .scale.combined(with: .opacity)))
                 } else {
                     contentPlaceholder
                 }
             }
-//            .navigationTitle(contact.firstName)
-//            .navigationBarTitleDisplayMode(.inline)
             .navigationBarItems(
                 leading: Button("Close") {
                     dismiss()
+                },
+                trailing: Button(action: {
+                    showDeleteAlert = true
+                }) {
+                    Image(systemName: "trash")
+                        .foregroundColor(.red)
                 }
             )
+            .alert(isPresented: $showDeleteAlert) {
+                Alert(
+                    title: Text("Delete Contact"),
+                    message: Text("Are you sure you want to delete this contact? This action cannot be undone."),
+                    primaryButton: .destructive(Text("Delete")) {
+                        onDelete()
+                    },
+                    secondaryButton: .cancel()
+                )
+            }
             .padding()
         }
         .interactiveDismissDisabled(isFetchingData)
@@ -272,10 +278,9 @@ struct DetailsPopupView: View {
         .cornerRadius(15)
         .shadow(radius: 5)
     }
+    
     func fetchUserDetails() {
         isFetchingData = true
-        
-        print("Attempting to fetch user with email: \(contact.email)")
         
         Firestore.firestore().collection("UserDatabase")
             .whereField("email", isEqualTo: contact.email)
@@ -291,38 +296,26 @@ struct DetailsPopupView: View {
                     }
 
                     guard let documents = querySnapshot?.documents, let document = documents.first else {
-                        print("No documents found for email: \(self.contact.email)")
+                        print("No documents found for email: \(contact.email)")
                         return
                     }
 
-                    // Detailed document data print
                     let documentData = document.data()
-                    print("Full Document Data: \(documentData)")
                     
-                    // Check for missing keys
-                    let requiredKeys = ["name", "profession", "role", "company", "email", "phoneNumber", "website", "address", "linkedIn", "instagram", "xHandle", "cardColor"]
-                    let missingKeys = requiredKeys.filter { !documentData.keys.contains($0) }
-                    
-                    if !missingKeys.isEmpty {
-                        print("Missing keys in document: \(missingKeys)")
-                    }
-
                     do {
-                        // Try decoding manually
                         let jsonData = try JSONSerialization.data(withJSONObject: documentData, options: [])
                         let decoder = JSONDecoder()
                         let user = try decoder.decode(UserDataBusinessCard.self, from: jsonData)
                         userData = user
                     } catch {
-                        print("Decoding Error Type: \(type(of: error))")
-                        print("Detailed Decoding Error: \(error)")
-                        print("Decoding Error Description: \(error.localizedDescription)")
+                        print("Decoding Error: \(error.localizedDescription)")
                     }
                 }
             }
     }
-    }
+}
 
+// Rest of the code (Contact struct, View extension) remains the same
 struct Contact: Identifiable, Equatable, Hashable {
     let id = UUID()
     let uid: String

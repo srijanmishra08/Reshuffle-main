@@ -93,10 +93,10 @@ struct SignupView: View {
                 Spacer()
                 
                 Image("Reshufflelogo")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 200, height: 80)
-                                    .padding()
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 200, height: 80)
+                    .padding()
 
                 Spacer()
             }
@@ -120,80 +120,99 @@ struct SignupView: View {
         }
         
         if password != confirmPassword {
-                errorMessage = "Password and confirm password do not match."
-                isErrorAlertPresented = true
-                return
-            }
+            errorMessage = "Password and confirm password do not match."
+            isErrorAlertPresented = true
+            return
+        }
 
         Auth.auth().createUser(withEmail: email, password: password) { authResult, error in
-                    if let error = error {
-                        print("Error signing up: \(error.localizedDescription)")
-                        errorMessage = "Invalid email or password. Please try again."
-                        isErrorAlertPresented = true
-                    } else {
-                        print("Successfully signed up!")
-                        if let user = authResult?.user {
-                            var userData: [String: Any] = [
-                                "uid": user.uid,
-                                                    "email": user.email ?? "",
-                                                    "profilePictureURL": "",
-                                                    "username": fullName
-                            ]
-
-                            Firestore.firestore().collection("users").document(user.uid).setData(userData) { error in
-                                if let error = error {
-                                    print("Error storing user data: \(error.localizedDescription)")
-                                    errorMessage = "Failed to store user data."
-                                    isErrorAlertPresented = true
-                                } else {
-                                    print("Successfully signed up and stored user data!")
-                                    Firestore.firestore().collection("user-messages").document(user.uid).setData([:]) { error in
-                                                if let error = error {
-                                                    print("Error creating user-messages document: \(error.localizedDescription)")
-                                                    
-                                                }
-                                        else {
-                                                        print("Successfully created user-messages document!")
-                                                        isOnboardingActive = true
-                                                    }
-                                                }
-                                    let scannedUIDsData: [String: Any] = [
-                                                            "scannedUIDs": []
-                                                        ]
-                                    Firestore.firestore().collection("SavedUsers").document(user.uid).setData(scannedUIDsData) { error in
-                                                if let error = error {
-                                                    print("Error creating SacedUsers document: \(error.localizedDescription)")
-                                                  
-                                                }
-                                        else {
-                                                        print("Successfully created SavedUsers document!")
-                                                        isOnboardingActive = true
-                                                    }
-                                                }
-                                    
-                                    let locationsData: [String: Any] = [
-                                            "PublicLocation": "ON"
-                                        ]
-                                    
-                                    Firestore.firestore().collection("Location").document(user.uid).setData(locationsData) { error in
-                                                if let error = error {
-                                                    print("Error creating SacedUsers document: \(error.localizedDescription)")
-                                                   
-                                                }
-                                        else {
-                                                        print("Successfully created Locations document!")
-                                                        isOnboardingActive = true
-                                                    }
-                                                }
-                                }
-                            }
-                        } else {
-                            errorMessage = "User is nil after sign-up."
+            if let error = error {
+                print("Error signing up: \(error.localizedDescription)")
+                errorMessage = "Invalid email or password. Please try again."
+                isErrorAlertPresented = true
+            } else {
+                print("Successfully signed up!")
+                if let user = authResult?.user {
+                    let db = Firestore.firestore()
+                    
+                    // Data for users collection
+                    let userData: [String: Any] = [
+                        "email": user.email ?? "",
+                        "profilePictureURL": "",
+                        "username": fullName
+                    ]
+                    
+                    // Data for UserDatabase collection
+                    let userDatabaseData: [String: Any] = [
+                        "email": user.email ?? ""
+                    ]
+                    
+                    // Create a dispatch group to track multiple async operations
+                    let group = DispatchGroup()
+                    
+                    // Save to users collection
+                    group.enter()
+                    db.collection("users").document(user.uid).setData(userData) { error in
+                        if let error = error {
+                            print("Error storing user data: \(error.localizedDescription)")
+                            errorMessage = "Failed to store user data."
                             isErrorAlertPresented = true
                         }
+                        group.leave()
                     }
+                    
+                    // Save to UserDatabase collection
+                    group.enter()
+                    db.collection("UserDatabase").document(user.uid).setData(userDatabaseData) { error in
+                        if let error = error {
+                            print("Error storing user in UserDatabase: \(error.localizedDescription)")
+                            errorMessage = "Failed to store user data."
+                            isErrorAlertPresented = true
+                        }
+                        group.leave()
+                    }
+                    
+                    // Create user-messages document
+                    group.enter()
+                    db.collection("user-messages").document(user.uid).setData([:]) { error in
+                        if let error = error {
+                            print("Error creating user-messages document: \(error.localizedDescription)")
+                        }
+                        group.leave()
+                    }
+                    
+                    // Create SavedUsers document
+                    group.enter()
+                    let scannedUIDsData: [String: Any] = ["scannedUIDs": []]
+                    db.collection("SavedUsers").document(user.uid).setData(scannedUIDsData) { error in
+                        if let error = error {
+                            print("Error creating SavedUsers document: \(error.localizedDescription)")
+                        }
+                        group.leave()
+                    }
+                    
+                    // Create Location document
+                    group.enter()
+                    let locationsData: [String: Any] = ["PublicLocation": "ON"]
+                    db.collection("Location").document(user.uid).setData(locationsData) { error in
+                        if let error = error {
+                            print("Error creating Location document: \(error.localizedDescription)")
+                        }
+                        group.leave()
+                    }
+                    
+                    // When all operations are complete
+                    group.notify(queue: .main) {
+                        print("All database operations completed!")
+                        isOnboardingActive = true
+                    }
+                } else {
+                    errorMessage = "User is nil after sign-up."
+                    isErrorAlertPresented = true
                 }
             }
+        }
+    }
 
     private func isValidEmail(_ email: String) -> Bool {
         let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
@@ -209,7 +228,6 @@ struct SignupView: View {
 struct SignupView_Previews: PreviewProvider {
     static var previews: some View {
         let userData = UserData()
-        SignupView(userData: userData) 
+        SignupView(userData: userData)
     }
 }
-

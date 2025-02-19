@@ -1,8 +1,3 @@
-//
-//  iOSAppApp.swift
-//  iOSApp
-//
-//  Created by Aditya Majumdar on 12/12/23.
 import SwiftUI
 import Firebase
 import GoogleSignIn
@@ -13,8 +8,9 @@ import UserNotifications
 struct iOSAppApp: App {
     init() {
         FirebaseApp.configure()
-        requestNotificationPermission() // Request notification permission
-        Messaging.messaging().delegate = NotificationManager.shared as? any MessagingDelegate // Set FCM delegate
+        print("Firebase initialized: \(FirebaseApp.app() != nil)")
+        requestNotificationPermission()
+        Messaging.messaging().delegate = NotificationManager.shared
     }
     
     @AppStorage("isLoggedIn") var isLoggedIn = false
@@ -38,12 +34,14 @@ struct iOSAppApp: App {
                     navigateToFirstPage = true
                 }
             }
+            .onOpenURL { url in
+                // Handle Instagram OAuth callback
+                if url.scheme == "Reshuffle-IG" && url.host == "auth" {
+                    print("Received Instagram OAuth callback: \(url)")
+                }
+            }
             .accentColor(.black)
         }
-//        .onOpenURL { url in
-//            // Handle push notification action on URL
-//            print("Received URL: \(url)")
-//        }
     }
     
     // Request notification permission
@@ -53,9 +51,14 @@ struct iOSAppApp: App {
                 print("Error requesting notification permission: \(error)")
             } else {
                 print(granted ? "Notification permission granted." : "Notification permission denied.")
+                if granted {
+                    DispatchQueue.main.async {
+                        UIApplication.shared.registerForRemoteNotifications()
+                    }
+                }
             }
         }
         
-        UNUserNotificationCenter.current().delegate = NotificationManager.shared as? any UNUserNotificationCenterDelegate
+        UNUserNotificationCenter.current().delegate = NotificationManager.shared
     }
 }

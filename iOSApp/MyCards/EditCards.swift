@@ -1,8 +1,158 @@
 import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
+import AuthenticationServices
+import SafariServices
+import SwiftUI
+import SafariServices
 
+// Instagram OAuth Configuration
+struct InstagramConfig {
+    static let clientID = "1103931211109084"
+    static let clientSecret = "e2bd131f3d7f47e892bbc49fad17c834"
+    static let redirectURI = "com.srijan.Reshuffle://oauth" // Use your app's custom URL scheme
+    static let scope = "instagram_basic,instagram_manage_insights,pages_show_list"
+}
 
+class InstagramAuthManager: ObservableObject {
+    @Published var isAuthenticated = false
+    @Published var username: String = ""
+    
+    func authenticate() -> URL? {
+        // Use Facebook's OAuth dialog for Instagram Business
+        let baseURL = "https://www.facebook.com/v21.0/dialog/oauth"
+        let queryItems = [
+            "client_id": InstagramConfig.clientID,
+            "redirect_uri": InstagramConfig.redirectURI,
+            "scope": InstagramConfig.scope,
+            "response_type": "code",
+            "state": UUID().uuidString // For security
+        ]
+        
+        var components = URLComponents(string: baseURL)
+        components?.queryItems = queryItems.map { URLQueryItem(name: $0.key, value: $0.value) }
+        return components?.url
+    }
+    
+    func handleCallback(url: URL) {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let code = components.queryItems?.first(where: { $0.name == "code" })?.value else {
+            print("Failed to get authorization code")
+            return
+        }
+        
+        exchangeCodeForToken(code: code)
+    }
+    
+    private func exchangeCodeForToken(code: String) {
+        let tokenEndpoint = "https://graph.facebook.com/v21.0/oauth/access_token"
+        let parameters = [
+            "client_id": InstagramConfig.clientID,
+            "client_secret": InstagramConfig.clientSecret,
+            "redirect_uri": InstagramConfig.redirectURI,
+            "code": code
+        ]
+        
+        var components = URLComponents(string: tokenEndpoint)
+        components?.queryItems = parameters.map { URLQueryItem(name: $0.key, value: $0.value) }
+        
+        guard let url = components?.url else { return }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            if let error = error {
+                print("Token exchange error: \(error)")
+                return
+            }
+            
+            guard let data = data else { return }
+            
+            do {
+                let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+                if let accessToken = json?["access_token"] as? String {
+                    self?.getInstagramAccountInfo(accessToken: accessToken)
+                }
+            } catch {
+                print("Error parsing token response: \(error)")
+            }
+        }.resume()
+    }
+    
+    private func getInstagramAccountInfo(accessToken: String) {
+        // First get the pages the user has access to
+        let graphEndpoint = "https://graph.facebook.com/v21.0/me/accounts"
+        let parameters = [
+            "access_token": accessToken,
+            "fields": "instagram_business_account,name"
+        ]
+        
+        var components = URLComponents(string: graphEndpoint)
+        components?.queryItems = parameters.map { URLQueryItem(name: $0.key, value: $0.value) }
+        
+        guard let url = components?.url else { return }
+        
+        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+            guard let data = data else { return }
+            
+            do {
+                let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+                if let accounts = json?["data"] as? [[String: Any]],
+                   let firstAccount = accounts.first,
+                   let instagramAccount = firstAccount["instagram_business_account"] as? [String: Any],
+                   let instagramAccountId = instagramAccount["id"] as? String {
+                    self?.fetchInstagramBusinessProfile(accessToken: accessToken, instagramAccountId: instagramAccountId)
+                }
+            } catch {
+                print("Error parsing accounts response: \(error)")
+            }
+        }.resume()
+    }
+    
+    private func fetchInstagramBusinessProfile(accessToken: String, instagramAccountId: String) {
+        let graphEndpoint = "https://graph.facebook.com/v21.0/\(instagramAccountId)"
+        let parameters = [
+            "access_token": accessToken,
+            "fields": "username,profile_picture_url,name"
+        ]
+        
+        var components = URLComponents(string: graphEndpoint)
+        components?.queryItems = parameters.map { URLQueryItem(name: $0.key, value: $0.value) }
+        
+        guard let url = components?.url else { return }
+        
+        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+            guard let data = data else { return }
+            
+            do {
+                let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any]
+                if let username = json?["username"] as? String {
+                    DispatchQueue.main.async {
+                        self?.username = username
+                        self?.isAuthenticated = true
+                    }
+                }
+            } catch {
+                print("Error parsing profile response: \(error)")
+            }
+        }.resume()
+    }
+}
+
+struct InstagramAuthWebView: UIViewControllerRepresentable {
+    let url: URL
+    @Binding var isPresented: Bool
+    var onCallback: (URL) -> Void
+    
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        let controller = SFSafariViewController(url: url)
+        controller.dismissButtonStyle = .close
+        return controller
+    }
+    
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
+}
 struct EditCards: View {
     @State private var isDetailViewActive = false
     @State private var isSaveButtonTapped = false
@@ -28,6 +178,9 @@ struct EditCards: View {
     @State private var latitude: Double = 0.0
     @State private var longitude: Double = 0.0
     @State private var selectedCardColor = Color.blue
+    @StateObject private var instagramAuth = InstagramAuthManager()
+    @State private var showingInstagramAuth = false
+
     // Color options
     let cardColors: [Color] = [
            .blue,
@@ -349,9 +502,42 @@ struct EditCards: View {
                                 RoundedTextField(label: "X Handle", text: $xHandle)
                                     .frame(height: 90)
                                     .padding(.horizontal)
-                                RoundedTextField(label: "Instagram", text: $instagram)
-                                    .frame(height: 90)
-                                    .padding(.horizontal)
+                               
+                                        VStack(alignment: .leading) {
+                                            Text("Instagram")
+                                                .font(.subheadline)
+                                                .foregroundColor(Color.gray)
+                                                .padding(.bottom, 1)
+                                                .padding(.top, 5)
+                                                .padding(.leading, 25)
+                                            
+                                            Button(action: {
+                                                if let url = instagramAuth.authenticate() {
+                                                    showingInstagramAuth = true
+                                                }
+                                            }) {
+                                                HStack {
+                                                    Image(systemName: instagramAuth.isAuthenticated ? "checkmark.circle.fill" : "link")
+                                                        .foregroundColor(instagramAuth.isAuthenticated ? .green : .blue)
+                                                    Text(instagramAuth.isAuthenticated ? "Connected as @\(instagramAuth.username)" : "Connect Instagram Account")
+                                                        .foregroundColor(instagramAuth.isAuthenticated ? .black : .blue)
+                                                }
+                                                .padding()
+                                                .background(RoundedRectangle(cornerRadius: 15).stroke(Color.black, lineWidth: 1))
+                                                .padding([.leading, .trailing])
+                                                .padding(.bottom, 5)
+                                            }
+                                        }
+                                        .sheet(isPresented: $showingInstagramAuth) {
+                                            if let url = instagramAuth.authenticate() {
+                                                InstagramAuthWebView(url: url, isPresented: $showingInstagramAuth) { callbackURL in
+                                                    instagramAuth.handleCallback(url: callbackURL)
+                                                    showingInstagramAuth = false
+                                                }
+                                            }
+                                        }
+                                    
+                                    
                                 
 //                                RoundedTextField(label: "Latitude", text: Binding(
 //                                    get: { "\(latitude)" },
@@ -451,7 +637,7 @@ struct EditCards: View {
                 "address": address,
                 "website": website,
                 "linkedIn": linkedIn,
-                "instagram": instagram,
+                "instagram": instagramAuth.username,
                 "xHandle": xHandle,
                 "latitude": latitude,
                 "longitude": longitude,

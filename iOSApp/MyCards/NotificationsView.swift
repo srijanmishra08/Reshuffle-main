@@ -1,212 +1,261 @@
 import SwiftUI
 import Firebase
-import FirebaseFirestore
 
+// MARK: - NotificationsView
 struct NotificationsView: View {
+    // MARK: - Properties
+    @Environment(\.dismiss) private var dismiss
     @State private var notifications: [FirestoreNotificationItem] = []
     @State private var isLoading = true
     @State private var isNavigationActive = false
+    @State private var errorMessage: String?
+    @State private var showError = false
+    @State private var showClearConfirmation = false
+    @Environment(\.colorScheme) var colorScheme
     
+    private let animation: Animation = .easeInOut(duration: 0.3)
+    
+    // MARK: - Body
     var body: some View {
-        NavigationView {
-            VStack {
+        NavigationStack {
+            ZStack {
+                contentView
+                
                 if isLoading {
-                    ProgressView("Loading Notifications...")
-                        .progressViewStyle(CircularProgressViewStyle())
-                } else if notifications.isEmpty {
-                    emptyStateView
-                } else {
-                    notificationListView
+                    loadingView
                 }
             }
             .navigationTitle("Notifications")
-            .navigationBarItems(
-                leading: backButton,
-                trailing: clearAllButton
-            )
-            .background(
-                NavigationLink(
-                    destination: MyCards().navigationBarBackButtonHidden(true),
-                    isActive: $isNavigationActive
-                ) {
-                    EmptyView()
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                toolbarContent
+            }
+            .alert("Error", isPresented: $showError, presenting: errorMessage) { _ in
+                Button("OK", role: .cancel) {}
+            } message: { error in
+                Text(error)
+            }
+            .confirmationDialog(
+                "Clear All Notifications",
+                isPresented: $showClearConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Clear All", role: .destructive) {
+                    Task { await clearAllNotifications() }
                 }
-            )
-            .onAppear {
-                loadNotifications()
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This action cannot be undone.")
+            }
+            .refreshable {
+                await loadNotifications()
+            }
+            .task {
+                await loadNotifications()
             }
         }
     }
     
-    // Empty state view when no notifications
+    // MARK: - Content View
+    @ViewBuilder
+    private var contentView: some View {
+        if notifications.isEmpty && !isLoading {
+            emptyStateView
+        } else {
+            notificationListView
+        }
+    }
+    
+    // MARK: - Loading View
+    private var loadingView: some View {
+        ZStack {
+            Color(UIColor.systemBackground)
+                .opacity(0.8)
+            
+            ProgressView()
+                .progressViewStyle(.circular)
+                .scaleEffect(1.2)
+        }
+        .ignoresSafeArea()
+    }
+    
+    // MARK: - Empty State View
     private var emptyStateView: some View {
-        VStack {
+        VStack(spacing: 20) {
             Image(systemName: "bell.slash.fill")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 100, height: 100)
-                .foregroundColor(.gray)
+                .frame(width: 80, height: 80)
+                .foregroundStyle(.secondary)
             
             Text("No Notifications")
-                .font(.headline)
-                .foregroundColor(.gray)
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundStyle(.primary)
             
             Text("You're all caught up!")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
         }
+        .frame(maxHeight: .infinity)
+        .transition(.opacity.combined(with: .scale))
     }
     
-    // List of notifications
+    // MARK: - Notification List View
     private var notificationListView: some View {
         List {
             ForEach(notifications) { notification in
-                NotificationCard(
-                    title: notification.title,
-                    subtitle: notification.subtitle,
-                    timestamp: notification.timestamp
-                )
-                .listRowInsets(EdgeInsets())
-                .overlay(Divider(), alignment: .bottom)
-            }
-            .onDelete(perform: deleteNotifications)
-        }
-        .listStyle(PlainListStyle())
-    }
-    
-    // Back button to previous screen
-    private var backButton: some View {
-        Button(action: {
-            isNavigationActive = true
-        }) {
-            Image(systemName: "arrow.left")
-        }
-    }
-    
-    // Clear all notifications button
-    private var clearAllButton: some View {
-        Button("Clear All") {
-            clearAllNotifications()
-        }
-        .foregroundColor(.red)
-    }
-    
-    // Load notifications from NotificationManager
-    private func loadNotifications() {
-        isLoading = true
-        NotificationManager.shared.fetchNotifications { fetchedNotifications in
-            self.notifications = fetchedNotifications
-            self.isLoading = false
-        }
-    }
-    
-    // Delete individual notifications
-    private func deleteNotifications(at offsets: IndexSet) {
-        guard let currentUserId = Auth.auth().currentUser?.uid else { return }
-        let db = Firestore.firestore()
-        
-        offsets.forEach { index in
-            let notification = notifications[index]
-            
-            // Delete from Firestore
-            db.collection("Notifications")
-                .document(currentUserId)
-                .collection("UserNotifications")
-                .document(notification.id)
-                .delete { error in
-                    if let error = error {
-                        print("Error deleting notification: \(error.localizedDescription)")
-                    }
-                }
-        }
-        
-        // Remove from local array
-        notifications.remove(atOffsets: offsets)
-    }
-    
-    // Clear all notifications
-    private func clearAllNotifications() {
-        guard let currentUserId = Auth.auth().currentUser?.uid else { return }
-        let db = Firestore.firestore()
-        
-        // Delete all notifications for the current user
-        db.collection("Notifications")
-            .document(currentUserId)
-            .collection("UserNotifications")
-            .getDocuments { snapshot, error in
-                if let error = error {
-                    print("Error fetching notifications: \(error.localizedDescription)")
-                    return
-                }
-                
-                snapshot?.documents.forEach { document in
-                    document.reference.delete { error in
-                        if let error = error {
-                            print("Error deleting notification: \(error.localizedDescription)")
+                NotificationCell(notification: notification)
+                    .swipeActions(allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            Task {
+                                await deleteNotification(notification)
+                            }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        
+                        if !notification.read {
+                            Button {
+                                Task {
+                                    await markAsRead(notification)
+                                }
+                            } label: {
+                                Label("Mark Read", systemImage: "checkmark.circle")
+                            }
+                            .tint(.blue)
                         }
                     }
+            }
+        }
+        .listStyle(.plain)
+    }
+    
+    // MARK: - Toolbar Content
+    @ToolbarContentBuilder
+        private var toolbarContent: some ToolbarContent {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .fontWeight(.semibold)
                 }
-                
-                // Clear local notifications array
+            }
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if !notifications.isEmpty {
+                    Button {
+                        showClearConfirmation = true
+                    } label: {
+                        Text("Clear All")
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+        }
+    
+    // MARK: - Methods
+    private func loadNotifications() async {
+        isLoading = true
+        do {
+            notifications = try await NotificationManager.shared.fetchNotifications()
+        } catch {
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+        isLoading = false
+    }
+    
+    private func deleteNotification(_ notification: FirestoreNotificationItem) async {
+        do {
+            try await NotificationManager.shared.deleteNotification(notificationId: notification.id)
+            withAnimation(animation) {
+                notifications.removeAll { $0.id == notification.id }
+            }
+        } catch {
+            errorMessage = "Failed to delete notification"
+            showError = true
+        }
+    }
+    
+    private func markAsRead(_ notification: FirestoreNotificationItem) async {
+        do {
+            try await NotificationManager.shared.markAsRead(notificationId: notification.id)
+            if let index = notifications.firstIndex(where: { $0.id == notification.id }) {
+                notifications[index].read = true
+            }
+        } catch {
+            errorMessage = "Failed to mark notification as read"
+            showError = true
+        }
+    }
+    
+    private func clearAllNotifications() async {
+        do {
+            try await NotificationManager.shared.clearAllNotifications()
+            withAnimation(animation) {
                 notifications.removeAll()
             }
+        } catch {
+            errorMessage = "Failed to clear notifications"
+            showError = true
+        }
     }
 }
 
-// Notification Card View
-struct NotificationCard: View {
-    var title: String
-    var subtitle: String
-    var timestamp: Date
+// MARK: - NotificationCell
+struct NotificationCell: View {
+    let notification: FirestoreNotificationItem
     
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text(title)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(notification.title)
                     .font(.headline)
-                    .fontWeight(.bold)
+                    .fontWeight(notification.read ? .regular : .semibold)
                 
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                Spacer()
+                
+                Text(timeAgo(from: notification.timestamp))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             
-            Spacer()
+            Text(notification.subtitle)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
             
-            Text(formattedTimestamp)
-                .font(.caption)
-                .foregroundColor(.secondary)
+            if !notification.read {
+                Capsule()
+                    .fill(.blue)
+                    .frame(width: 8, height: 8)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
         }
-        .padding()
-        .background(Color.white)
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
     }
     
-    // Format timestamp
-    private var formattedTimestamp: String {
+    private func timeAgo(from date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: timestamp, relativeTo: Date())
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
-struct NotificationsView_Previews: PreviewProvider {
-    static var previews: some View {
-        NotificationsView()
+
+// MARK: - Preview
+#Preview {
+    NotificationsView()
+}
+
+// MARK: - Helper Extensions
+extension FirestoreNotificationItem {
+    // Add a mutating property for read status since we need to update it
+    // This extends the original struct from NotificationManager
+    fileprivate mutating func markAsRead() {
+        read = true
     }
 }
-//setup inapp notification
-    //create notifications
-        //logic-- create a new document in the notifications collection inside the user's document, and set the title, subtitle, and timestamp,
-            //NEW CONNETION
-            // when a user adds mycard then a notification should be created for that user
-
-            //when i add another user then a notification should be created for that user
-            // when i add another user then a notification should be created for me as well
-            //SUGGESTED CONNECTION
-            //  when a user of my category is present in the proximity
-            // custom notifications from the team to all users for networking events
-
-    //send notifications
-//setup push notification
-//setup local notification
-
-

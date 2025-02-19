@@ -13,6 +13,7 @@ class UserDataViewModel: ObservableObject {
     @Published var showCardSavedAlert: Bool = false
     @Published var showCardAlreadySavedAlert: Bool = false
     private var listener: ListenerRegistration?
+    
 
     init() {
         fetchData()
@@ -179,7 +180,8 @@ struct MyCards: View {
     @State private var userDataCard: UserDataBusinessCard?
     @State private var isPopupActive = false
     @State private var selectedCardColor = Color.blue
-
+    @StateObject private var nfcViewModel = NFCBusinessCardSharingViewModel()
+    @State private var showNFCSharingSheet = false
 
     var body: some View {
         NavigationView {
@@ -267,7 +269,20 @@ struct MyCards: View {
                             )
                             .padding(.bottom)
                     }
-
+                    // New NFC sharing button
+                    Button(action: {
+                           showNFCSharingSheet = true
+                       }) {
+                           RoundedRectangle(cornerRadius: 10)
+                               .stroke(Color.black, lineWidth: 1)
+                               .frame(width: 70, height: 70)
+                               .overlay(
+                                   Image(systemName: "wave.3.right")
+                                       .font(.system(size: 35))
+                                       .foregroundColor(.black)
+                               )
+                               .padding(.bottom)
+                       }
                     Button(action: {
                         isImagePickerPresented = true
                     }) {
@@ -338,6 +353,11 @@ struct MyCards: View {
                 ImagePickerCard(isImagePickerPresented: $isImagePickerPresented)
                     .environmentObject(userDataViewModel)
             }
+            // Add the new NFC sheet modifier here
+                    .sheet(isPresented: $showNFCSharingSheet) {
+                        NFCSharingView()
+                            .environmentObject(userDataViewModel)
+                    }
             .background(Color.white)
             .onAppear {
                 fetchUserData()

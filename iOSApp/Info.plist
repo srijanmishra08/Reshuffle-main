@@ -2,16 +2,104 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>com.googleusercontent.apps.343406970416-aefa0clfpf3ncdldfc4a1gf3a01l4r1n</string>
-			</array>
-		</dict>
-	</array>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLName</key>
+            <string>GoogleOAuth</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>com.googleusercontent.apps.343406970416-aefa0clfpf3ncdldfc4a1gf3a01l4r1n</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLName</key>
+            <string>FacebookOAuth</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>fb554942260850978</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLName</key>
+            <string>InstagramOAuth</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>Reshuffle-IG</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>CFBundleURLName</key>
+            <string>com.srijan.Reshuffle</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>com.srijan.Reshuffle</string>
+            </array>
+        </dict>
+    </array>
+
+    <key>FacebookAppID</key>
+    <string>554942260850978</string>
+    <key>FacebookClientToken</key>
+    <string>dbe19b69429800f6f2cfec235c359018</string>
+    <key>FacebookDisplayName</key>
+    <string>Reshuffle</string>
+
+    <key>FirebaseAppDelegateProxyEnabled</key>
+    <false/>
+
+    <key>LSApplicationQueriesSchemes</key>
+    <array>
+        <string>fbapi</string>
+        <string>fb-messenger-share-api</string>
+        <string>instagram</string>
+    </array>
+
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+        <string>processing</string>
+        <string>remote-notification</string>
+    </array>
+
+    <key>aps-environment</key>
+    <string>development</string>
+
+    <key>com.apple.developer.nfc.readersession.formats</key>
+    <array>
+        <string>TAG</string>
+    </array>
+
+    <key>NSPrivacyAccessedAPICategoryNFCReader</key>
+    <string>NFC tag scanning is used for business card sharing.</string>
+    
+    <key>NFCReaderUsageDescription</key>
+    <string>Reshuffle uses NFC to scan and share business cards.</string>
+    
+    <key>MinimumOSVersion</key>
+    <string>17.0</string>
+    
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>com.srijan.Reshuffle.backgroundTask</string>
+    </array>
+
+    <!-- Added missing purpose strings -->
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>This app requires access to your photo library to allow users to upload and share images.</string>
+    
+    <key>NSMicrophoneUsageDescription</key>
+    <string>This app requires access to your microphone for audio recording and communication.</string>
 </dict>
 </plist>

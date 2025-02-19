@@ -1,18 +1,30 @@
+
+// ReshuffleWidget.swift (Static Widget)
 import WidgetKit
 import SwiftUI
+// SharedUserDefaults.swift
+import Foundation
+import WidgetKit
 
-struct ReShuffleQRWidgetEntryView: View {
-    var entry: SimpleEntry
-
-    var body: some View {
-        VStack {
-            Text("My QR Code")
-                .font(.headline)
-            QRCodeView(qrCodeData: entry.qrCodeData) // Use QRCodeView here
-        }
-        .padding()
+struct SharedUserDefaults {
+    static let appGroupIdentifier = "group.com.reshuffle.widget" // Your app group identifier
+    static let qrCodeKey = "QRCodeData"
+    
+    static var shared: UserDefaults? {
+        UserDefaults(suiteName: appGroupIdentifier)
+    }
+    
+    static func saveQRCode(_ data: String) {
+        shared?.set(data, forKey: qrCodeKey)
+        shared?.synchronize()
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+    
+    static func loadQRCode() -> String {
+        shared?.string(forKey: qrCodeKey) ?? "No QR Code Available"
     }
 }
+
 
 struct SimpleEntry: TimelineEntry {
     let date: Date
@@ -21,14 +33,15 @@ struct SimpleEntry: TimelineEntry {
 
 struct ReShuffleQRWidgetProvider: TimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date(), qrCodeData: "Sample QR Code Data")
+        SimpleEntry(date: Date(), qrCodeData: "")
     }
-
+    
     func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
-        let entry = SimpleEntry(date: Date(), qrCodeData: loadQRCodeData())
+        let qrCodeData = loadQRCodeData()
+        let entry = SimpleEntry(date: Date(), qrCodeData: qrCodeData)
         completion(entry)
     }
-
+    
     func getTimeline(in context: Context, completion: @escaping (Timeline<SimpleEntry>) -> ()) {
         let currentDate = Date()
         let qrCodeData = loadQRCodeData()
@@ -42,33 +55,62 @@ struct ReShuffleQRWidgetProvider: TimelineProvider {
     }
     
     private func loadQRCodeData() -> String {
-        // Fetch the QR code data from UserDefaults
-        guard let qrCodeData = UserDefaults.standard.string(forKey: "QRCodeData") else {
-            return "No QR Code Available" // Or any default text you prefer
+        // Try to get UID from shared UserDefaults
+        if let sharedDefaults = UserDefaults(suiteName: "group.com.reshuffle.widget"),
+           let uid = sharedDefaults.string(forKey: "QRCodeData") {
+            return uid
         }
-        return qrCodeData
+        return ""
     }
 }
 
-// Widget Configuration
+struct ReShuffleQRWidgetEntryView: View {
+    var entry: SimpleEntry
+
+    var body: some View {
+        ZStack {
+            // Background color
+            Color(UIColor.systemBackground)
+                .edgesIgnoringSafeArea(.all)
+
+            // QR Code centered
+            VStack {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color(UIColor.secondarySystemBackground))
+                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+
+                    QRCodeView(qrCodeData: entry.qrCodeData)
+                        .padding(16)
+                }
+                .frame(width: 160, height: 160)
+            }
+        }
+    }
+}
+
+
+
+// Preview provider
+struct ReShuffleQRWidgetEntryView_Previews: PreviewProvider {
+    static var previews: some View {
+        Group {
+            ReShuffleQRWidgetEntryView(entry: SimpleEntry(date: Date(), qrCodeData: "SampleQRData"))
+                .previewContext(WidgetPreviewContext(family: .systemSmall))
+        }
+    }
+}
 @main
 struct ReShuffleQRWidget: Widget {
     let kind: String = "ReShuffleQRWidget"
-
+    
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: ReShuffleQRWidgetProvider()) { entry in
             ReShuffleQRWidgetEntryView(entry: entry)
+                .frame(maxWidth: .infinity, maxHeight: .infinity) // Add this
         }
         .configurationDisplayName("ReShuffle QR Widget")
         .description("Display your ReShuffle QR code.")
-        .supportedFamilies([.systemSmall])
-    }
-}
-
-// Preview for the widget
-struct ReShuffleQRWidget_Previews: PreviewProvider {
-    static var previews: some View {
-        ReShuffleQRWidgetEntryView(entry: SimpleEntry(date: Date(), qrCodeData: "Sample QR Code Data"))
-            .previewContext(WidgetPreviewContext(family: .systemSmall))
+        .supportedFamilies([.systemSmall, .systemMedium]) // Update supported sizes
     }
 }
