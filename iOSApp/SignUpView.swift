@@ -60,7 +60,7 @@ struct SignupView: View {
                 }
                 .padding(.horizontal)
 
-                NavigationLink(destination: Onboarding(userData: userData).navigationBarBackButtonHidden(true), isActive: $isOnboardingActive) {
+                NavigationLink(destination: Onboarding(userData: userData).navigationBarBackButtonHidden(true)) {
                     Button(action: {
                         signUpWithFirebase()
                     }) {

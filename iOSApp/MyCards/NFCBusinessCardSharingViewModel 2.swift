@@ -1,10 +1,26 @@
+//
+//  NFCBusinessCardSharingViewModel 2.swift
+//  iOSApp
+//
+//  Created by S on 28/02/25.
+//
+
+
 import Foundation
 import CoreNFC
 import FirebaseFirestore
 import FirebaseAuth
 import UIKit
 
-class NFCBusinessCardSharingViewModel: NSObject, ObservableObject {
+class NFCBusinessCardSharingViewModel: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate {
+    func readerSession(_ session: NFCNDEFReaderSession, didInvalidateWithError error: any Error) {
+        <#code#>
+    }
+    
+    func readerSession(_ session: NFCNDEFReaderSession, didDetectNDEFs messages: [NFCNDEFMessage]) {
+        <#code#>
+    }
+    
     // MARK: - Published Properties
     @Published var isNFCSharing = false
     @Published var nfcStatus: String = ""

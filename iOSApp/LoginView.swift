@@ -112,7 +112,7 @@ struct LoginView: View {
                     .padding()
                 }
 
-                NavigationLink(destination: FirstPage().navigationBarBackButtonHidden(true), isActive: $isOnboardingActive) {
+                NavigationLink(destination: FirstPage().navigationBarBackButtonHidden(true)) {
                     Button(action: {
                         loginWithFirebase()
                     }) {
@@ -128,7 +128,7 @@ struct LoginView: View {
                 HStack {
                     Text("Don’t have an account?")
 
-                    NavigationLink(destination: SignupView(userData: userData).navigationBarBackButtonHidden(true), isActive: $isSignupActive) {
+                    NavigationLink(destination: SignupView(userData: userData).navigationBarBackButtonHidden(true)) {
                         EmptyView()
                     }
                     .hidden()

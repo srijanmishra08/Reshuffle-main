@@ -1,7 +1,7 @@
 import SwiftUI
 import CoreImage
 import UIKit
-import FirebaseAuth
+//import FirebaseAuth
 
 struct QRCodeView: View {
     let qrCodeData: String

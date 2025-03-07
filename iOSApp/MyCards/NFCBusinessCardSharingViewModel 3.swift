@@ -1,4 +1,12 @@
 //
+//  NFCBusinessCardSharingViewModel 3.swift
+//  iOSApp
+//
+//  Created by S on 01/03/25.
+//
+
+
+//
 //  NFCBusinessCardSharingViewModel 2.swift
 //  iOSApp
 //

@@ -6,6 +6,7 @@ import SwiftUI
 import Foundation
 import WidgetKit
 
+
 struct SharedUserDefaults {
     static let appGroupIdentifier = "group.com.reshuffle.widget" // Your app group identifier
     static let qrCodeKey = "QRCodeData"
@@ -103,6 +104,7 @@ struct ReShuffleQRWidgetEntryView_Previews: PreviewProvider {
 @main
 struct ReShuffleQRWidget: Widget {
     let kind: String = "ReShuffleQRWidget"
+   
     
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: ReShuffleQRWidgetProvider()) { entry in

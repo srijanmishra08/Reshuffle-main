@@ -7,5 +7,9 @@
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.widgetkit-extension</string>
 	</dict>
+    <key>FirebaseAutomaticScreenReportingEnabled</key>
+    <false/>
+    <key>FirebaseAppDelegateProxyEnabled</key>
+    <false/>
 </dict>
 </plist>
