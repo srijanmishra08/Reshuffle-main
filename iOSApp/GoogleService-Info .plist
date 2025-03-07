@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.srijan.Reshuffle</string>
+	<string>com.Aditya.iOSApp</string>
 	<key>PROJECT_ID</key>
 	<string>reshuffle-8d7e9</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,7 +25,7 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:935099850347:ios:5573cdd25d620b07a21b2e</string>
+	<string>1:935099850347:ios:a6e36e95e5223374a21b2e</string>
 	<key>DATABASE_URL</key>
 	<string>https://reshuffle-8d7e9-default-rtdb.asia-southeast1.firebasedatabase.app</string>
 </dict>
