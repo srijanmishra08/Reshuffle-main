@@ -11,13 +11,26 @@ import Firebase
 
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
-
-
+    // In AppDelegate.swift
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
         FirebaseApp.configure()
+        
+        // Initialize notification manager
+        NotificationManager.shared.registerForRemoteNotifications()
+        
         return true
     }
+
+    // Handle remote notification registration success
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Messaging.messaging().apnsToken = deviceToken
+    }
+
+    // Handle remote notification registration failure
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        print("Failed to register for remote notifications: \(error.localizedDescription)")
+    }
+
 
     // MARK: UISceneSession Lifecycle
 

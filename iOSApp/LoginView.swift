@@ -126,12 +126,11 @@ struct LoginView: View {
                     .padding(.horizontal)
                 }
                 HStack {
-                    Text("Don’t have an account?")
+                    Text("Don't have an account?")
 
-                    NavigationLink(destination: SignupView(userData: userData).navigationBarBackButtonHidden(true)) {
+                    NavigationLink(destination: SignupView(userData: userData).navigationBarBackButtonHidden(true), isActive: $isSignupActive) {
                         EmptyView()
                     }
-                    .hidden()
 
                     Button(action: {
                         isSignupActive = true
@@ -142,6 +141,7 @@ struct LoginView: View {
                     }
                 }
                 .padding()
+
                 
                 Spacer()
                 
@@ -191,15 +191,52 @@ struct LoginView: View {
     }
 
     private func resetPassword() {
-        Auth.auth().sendPasswordReset(withEmail: email) { error in
+        // Validate email is not empty
+        guard !email.isEmpty else {
+            errorMessage = "Please enter your email address."
+            isErrorAlertPresented = true
+            return
+        }
+        
+        // Validate email format (basic validation)
+        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
+        guard emailPredicate.evaluate(with: email) else {
+            errorMessage = "Please enter a valid email address."
+            isErrorAlertPresented = true
+            return
+        }
+        
+        // First check if the user exists in Firebase Auth
+        Auth.auth().fetchSignInMethods(forEmail: email) { methods, error in
             if let error = error {
-                print("Error sending password reset email: \(error.localizedDescription)")
-                errorMessage = "Error sending password reset email. Please try again."
-                isErrorAlertPresented = true
-            } else {
-                print("Password reset email sent successfully!")
-                errorMessage = "Password reset email sent successfully. Check your inbox."
-                isErrorAlertPresented = true
+                print("Error checking email: \(error.localizedDescription)")
+                self.errorMessage = "Error checking email. Please try again."
+                self.isErrorAlertPresented = true
+                return
+            }
+            
+            // If methods is nil or empty, the user does not exist
+            guard let methods = methods, !methods.isEmpty else {
+                // For security reasons, don't tell the user that the email doesn't exist
+                // Instead, show the same success message to avoid email enumeration attacks
+                print("User not found, but showing success message for security")
+                self.errorMessage = "If an account exists with that email, a password reset link has been sent."
+                self.isErrorAlertPresented = true
+                return
+            }
+            
+            // If we reach here, the user exists, so send the actual reset email
+            Auth.auth().sendPasswordReset(withEmail: self.email) { error in
+                if let error = error {
+                    print("Error sending password reset email: \(error.localizedDescription)")
+                    self.errorMessage = "Error sending password reset email. Please try again."
+                    self.isErrorAlertPresented = true
+                } else {
+                    print("Password reset email sent successfully!")
+                    self.errorMessage = "Password reset link has been sent to your email."
+                    self.isErrorAlertPresented = true
+                }
             }
         }
     }
